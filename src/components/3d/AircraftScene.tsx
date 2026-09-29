@@ -25,18 +25,16 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
   const aircraftRef = useRef<AircraftMeshGroups | null>(null);
 
   // Background Panorama & Environment Meshes
-  const skyMeshRef = useRef<THREE.Mesh | null>(null);
-  const approachMeshRef = useRef<THREE.Mesh | null>(null);
-  const hangarMeshRef = useRef<THREE.Mesh | null>(null);
+  const airportSunsetMeshRef = useRef<THREE.Mesh | null>(null);
   const floorMeshRef = useRef<THREE.Mesh | null>(null);
   const runwayLightsGroupRef = useRef<THREE.Group | null>(null);
 
   const lightsRef = useRef<{
     sun: THREE.DirectionalLight;
     ambient: THREE.AmbientLight;
-    hangarSpot1: THREE.SpotLight;
-    hangarSpot2: THREE.SpotLight;
-    rimLight: THREE.DirectionalLight;
+    sunsetRim: THREE.DirectionalLight;
+    tarmacLight1: THREE.SpotLight;
+    tarmacLight2: THREE.SpotLight;
   } | null>(null);
 
   const particlesRef = useRef<THREE.Points | null>(null);
@@ -60,18 +58,18 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
-    // 1. Scene & Depth Fog
+    // 1. Scene & Depth Fog tuned to London City Airport golden sunset
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a101d);
-    scene.fog = new THREE.FogExp2(0x0a101d, 0.008);
+    scene.background = null; // transparent so the high-res background image layers through cleanly
+    scene.fog = new THREE.FogExp2(0x18151f, 0.005);
     sceneRef.current = scene;
 
-    // 2. Camera
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1500);
+    // 2. Camera with cinematic focal length
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 2000);
     camera.position.set(12, 4, 18);
     cameraRef.current = camera;
 
-    // 3. Renderer with High Dynamic Range & Color Precision
+    // 3. WebGL Renderer with High Dynamic Range & Tone Mapping
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: 'high-performance',
@@ -80,7 +78,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.3;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
@@ -88,13 +86,14 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
 
     const textureLoader = new THREE.TextureLoader();
 
-    // 4. Lighting System
-    const ambient = new THREE.AmbientLight(0xcfd8dc, 0.9);
+    // 4. Lighting System Tuned to Golden Hour Sunset Airport Atmosphere
+    // Warm golden ambient reflecting off the Thames water & airport tarmac
+    const ambient = new THREE.AmbientLight(0xffedd5, 1.1);
     scene.add(ambient);
 
-    // Warm Golden Sunlight in sky / twilight rim
-    const sun = new THREE.DirectionalLight(0xffedd5, 3.2);
-    sun.position.set(30, 35, 25);
+    // Warm Golden Sun Key Light matching the sunset in London City Airport photo
+    const sun = new THREE.DirectionalLight(0xffa500, 3.6);
+    sun.position.set(28, 18, 30);
     sun.castShadow = true;
     sun.shadow.mapSize.width = 2048;
     sun.shadow.mapSize.height = 2048;
@@ -106,88 +105,53 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     sun.shadow.camera.bottom = -25;
     scene.add(sun);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
-    rimLight.position.set(-25, -2, -30);
-    scene.add(rimLight);
+    // Twilight Blue Sky Rim Light from opposite horizon
+    const sunsetRim = new THREE.DirectionalLight(0x38bdf8, 2.2);
+    sunsetRim.position.set(-25, 6, -30);
+    scene.add(sunsetRim);
 
-    // Hangar Overhead Industrial Spotlights
-    const hangarSpot1 = new THREE.SpotLight(0xffffff, 0, 50, Math.PI / 3.5, 0.35, 1);
-    hangarSpot1.position.set(0, 22, 6);
-    scene.add(hangarSpot1);
+    // Runway / Tarmac Overhead Floodlights
+    const tarmacLight1 = new THREE.SpotLight(0xfffbeb, 0, 50, Math.PI / 3.2, 0.35, 1);
+    tarmacLight1.position.set(0, 22, 8);
+    scene.add(tarmacLight1);
 
-    const hangarSpot2 = new THREE.SpotLight(0x38bdf8, 0, 50, Math.PI / 3.5, 0.35, 1);
-    hangarSpot2.position.set(0, 22, -6);
-    scene.add(hangarSpot2);
+    const tarmacLight2 = new THREE.SpotLight(0xfef08a, 0, 50, Math.PI / 3.2, 0.35, 1);
+    tarmacLight2.position.set(0, 22, -8);
+    scene.add(tarmacLight2);
 
-    lightsRef.current = { sun, ambient, hangarSpot1, hangarSpot2, rimLight };
+    lightsRef.current = { sun, ambient, sunsetRim, tarmacLight1, tarmacLight2 };
 
     // ==============================================================
-    // 5. REAL IMAGE BACKGROUND PANORAMAS (Sky -> Airport Approach -> Hangar)
+    // 5. EXACT REQUESTED REAL AIRPORT SUNSET BACKGROUND
     // ==============================================================
-
-    // A. Real High-Altitude Sky Background (Cruise Flight Phase)
-    const skyTex = textureLoader.load(ASSET_IMAGES.skyClouds);
-    skyTex.wrapS = THREE.ClampToEdgeWrapping;
-    skyTex.wrapT = THREE.ClampToEdgeWrapping;
-    const skyGeo = new THREE.SphereGeometry(220, 48, 32);
-    const skyMat = new THREE.MeshBasicMaterial({
-      map: skyTex,
+    const sunsetTex = textureLoader.load(ASSET_IMAGES.londonAirportSunset);
+    sunsetTex.wrapS = THREE.ClampToEdgeWrapping;
+    sunsetTex.wrapT = THREE.ClampToEdgeWrapping;
+    
+    // Curved panoramic cylindrical cyclorama backdrop
+    const sunsetGeo = new THREE.CylinderGeometry(200, 200, 160, 64, 1, true, -Math.PI * 0.75, Math.PI * 1.5);
+    const sunsetMat = new THREE.MeshBasicMaterial({
+      map: sunsetTex,
       side: THREE.BackSide,
       transparent: true,
-      opacity: 1.0,
+      opacity: 0.95,
       depthWrite: false,
     });
-    const skyMesh = new THREE.Mesh(skyGeo, skyMat);
-    skyMesh.rotation.y = -Math.PI / 2.2;
-    scene.add(skyMesh);
-    skyMeshRef.current = skyMesh;
-
-    // B. Real Airport Runway Approach Background (Descent Phase leading to Airport)
-    const approachTex = textureLoader.load(ASSET_IMAGES.airportApproach);
-    const approachGeo = new THREE.CylinderGeometry(180, 180, 140, 48, 1, true, -Math.PI * 0.7, Math.PI * 1.4);
-    const approachMat = new THREE.MeshBasicMaterial({
-      map: approachTex,
-      side: THREE.BackSide,
-      transparent: true,
-      opacity: 0.0,
-      depthWrite: false,
-    });
-    const approachMesh = new THREE.Mesh(approachGeo, approachMat);
-    approachMesh.position.set(0, 20, -25);
-    scene.add(approachMesh);
-    approachMeshRef.current = approachMesh;
-
-    // C. Real Airport Maintenance Hangar Background (Docked & Disassembly Phase)
-    const hangarTex = textureLoader.load(ASSET_IMAGES.hangarBay);
-    const hangarGeo = new THREE.CylinderGeometry(110, 110, 90, 48, 1, true);
-    const hangarMat = new THREE.MeshStandardMaterial({
-      map: hangarTex,
-      side: THREE.BackSide,
-      transparent: true,
-      opacity: 0.0,
-      roughness: 0.4,
-      metalness: 0.6,
-      depthWrite: false,
-    });
-    const hangarMesh = new THREE.Mesh(hangarGeo, hangarMat);
-    hangarMesh.position.set(0, 15, 0);
-    scene.add(hangarMesh);
-    hangarMeshRef.current = hangarMesh;
+    const airportSunsetMesh = new THREE.Mesh(sunsetGeo, sunsetMat);
+    airportSunsetMesh.position.set(0, 24, -30);
+    scene.add(airportSunsetMesh);
+    airportSunsetMeshRef.current = airportSunsetMesh;
 
     // ==============================================================
     // 6. REAL AIRPORT TARMAC & RUNWAY SURFACE
     // ==============================================================
-    const tarmacTex = textureLoader.load(ASSET_IMAGES.tarmacRunway);
-    tarmacTex.wrapS = THREE.RepeatWrapping;
-    tarmacTex.wrapT = THREE.RepeatWrapping;
-    tarmacTex.repeat.set(8, 8);
-
-    const floorGeo = new THREE.PlaneGeometry(280, 280, 32, 32);
+    const floorGeo = new THREE.PlaneGeometry(320, 320, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
     const floorMat = new THREE.MeshStandardMaterial({
-      map: tarmacTex,
-      metalness: 0.7,
-      roughness: 0.35,
+      color: 0x111317,
+      metalness: 0.85,
+      roughness: 0.28,
+      envMapIntensity: 1.2,
       transparent: true,
       opacity: 0.0,
     });
@@ -201,42 +165,40 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     const runwayLightsGroup = new THREE.Group();
     runwayLightsGroup.position.set(0, -3.28, 0);
 
-    // Runway Centerline White Inset Lights
     const centerlineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const centerlineGeo = new THREE.BoxGeometry(0.2, 0.05, 1.2);
+    const centerlineGeo = new THREE.BoxGeometry(0.25, 0.06, 1.4);
     for (let z = -120; z < 100; z += 6) {
       const lightMesh = new THREE.Mesh(centerlineGeo, centerlineMat);
       lightMesh.position.set(0, 0, z);
       runwayLightsGroup.add(lightMesh);
     }
 
-    // Runway Edge Lights (Yellow/White) & Green Threshold Barrette
-    const edgeLightGeo = new THREE.SphereGeometry(0.12, 12, 12);
-    const edgeYellowMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    const edgeLightGeo = new THREE.SphereGeometry(0.14, 12, 12);
+    const edgeAmberMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
     const edgeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
     const greenThresholdMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
     const blueTaxiMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
 
-    // Green Threshold Bar (The runway start)
-    for (let x = -14; x <= 14; x += 1.5) {
+    // Green Runway Threshold Light Bar
+    for (let x = -15; x <= 15; x += 1.5) {
       const thLight = new THREE.Mesh(edgeLightGeo, greenThresholdMat);
       thLight.position.set(x, 0.08, -35);
       runwayLightsGroup.add(thLight);
     }
 
-    // Approach Light System (ALS) crossbars leading to runway
+    // Approach Light System (ALS) crossbars
     for (let z = -90; z < -35; z += 12) {
-      for (let x = -8; x <= 8; x += 2) {
+      for (let x = -9; x <= 9; x += 2) {
         const als = new THREE.Mesh(edgeLightGeo, edgeWhiteMat);
         als.position.set(x, 0.08, z);
         runwayLightsGroup.add(als);
       }
     }
 
-    // Runway Edges
+    // Runway Amber / White Side Edges
     for (let z = -35; z < 90; z += 8) {
-      const isYellowZone = z > 50;
-      const mat = isYellowZone ? edgeYellowMat : edgeWhiteMat;
+      const isAmber = z > 45;
+      const mat = isAmber ? edgeAmberMat : edgeWhiteMat;
 
       const leftEdge = new THREE.Mesh(edgeLightGeo, mat);
       leftEdge.position.set(-14, 0.08, z);
@@ -256,8 +218,8 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     runwayLightsGroup.visible = false;
     runwayLightsGroupRef.current = runwayLightsGroup;
 
-    // 8. Atmospheric Cloud & Vapor Particles
-    const particleCount = 200;
+    // 8. Atmospheric Sunset Particles / Dust
+    const particleCount = 180;
     const particleGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount * 3; i += 3) {
@@ -267,8 +229,8 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     }
     particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const particleMat = new THREE.PointsMaterial({
-      color: 0xe0f2fe,
-      size: 0.38,
+      color: 0xfef08a,
+      size: 0.35,
       transparent: true,
       opacity: 0.3,
     });
@@ -276,7 +238,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     scene.add(particles);
     particlesRef.current = particles;
 
-    // 9. Build Genuine Commercial Jetliner Model
+    // 9. Build Exact Pure White Commercial Airliner Model
     const aircraft = buildAeroAircraft();
     scene.add(aircraft.root);
     aircraftRef.current = aircraft;
@@ -294,7 +256,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
-    // Main 60FPS Animation Loop
+    // Main Animation Loop
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -303,7 +265,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // Spin CFM LEAP Turbofan Blades AND Iconic White Spiral Spinner
+      // Spin Turbofan Blades & Spiral Spinner Cone
       if (aircraftRef.current) {
         aircraftRef.current.fanBlades.forEach((fan) => {
           fan.rotation.z += 14 * delta;
@@ -313,19 +275,19 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
           spinner.rotation.y += 14 * delta;
         });
 
-        // Anti-Collision Strobe Flash (Wingtip white, belly red beacon)
+        // Anti-Collision Strobe Flash
         const strobeFlash = Math.sin(time * 7) > 0.82;
         aircraftRef.current.navLights.forEach((light) => {
           light.intensity = strobeFlash ? 4.5 : 1.2;
         });
       }
 
-      // Stream High-Altitude Cloud/Vapor Particles
+      // Stream Dust / Atmosphere Particles
       if (particlesRef.current) {
         const posAttr = particlesRef.current.geometry.attributes.position as THREE.BufferAttribute;
         const array = posAttr.array as Float32Array;
         for (let i = 2; i < array.length; i += 3) {
-          array[i] += 48 * delta;
+          array[i] += 42 * delta;
           if (array[i] > 70) array[i] = -70;
         }
         posAttr.needsUpdate = true;
@@ -340,7 +302,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
         cameraRef.current.lookAt(currentCamLook.current);
       }
 
-      // Screen Projections for 2D Callout Lines
+      // 2D Screen Projections for Interactive Exploded Callouts
       if (cameraRef.current && containerRef.current) {
         const w = containerRef.current.clientWidth;
         const h = containerRef.current.clientHeight;
@@ -386,7 +348,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     };
   }, []);
 
-  // Update Aircraft State & Real Image Backgrounds Based on Scroll Progress
+  // Update Aircraft State Based on Scroll Progress
   useEffect(() => {
     if (!isSceneReady || !aircraftRef.current || !lightsRef.current || !sceneRef.current) return;
 
@@ -395,51 +357,31 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     const scene = sceneRef.current;
     const p = Math.max(0, Math.min(1, scrollProgress));
 
-    // Exploded View Factor (Active in hangar: p > 0.58)
+    // Exploded View Factor (begins once landed near runway threshold: p > 0.58)
     let explodedFactor = 0;
     if (p > 0.58) {
       explodedFactor = Math.min(1, (p - 0.58) / 0.32);
     }
     smoothExploded.current = explodedFactor;
 
-    // REAL IMAGE BACKGROUND TRANSITIONS:
-    // Phase 1 (0 to 0.35): Real high altitude sky & clouds
-    // Phase 2 (0.35 to 0.68): Real aerial descent approaching international airport runway
-    // Phase 3 (0.68 to 1.0): Real airport tarmac & maintenance hangar
-    if (skyMeshRef.current && approachMeshRef.current && hangarMeshRef.current && floorMeshRef.current) {
+    // Background & Tarmac Transitions
+    if (airportSunsetMeshRef.current && floorMeshRef.current) {
+      // In flight, background is at full beauty, tarmac fades in as we descend towards touchdown
       if (p < 0.35) {
-        // High Sky
-        const skyOp = 1.0;
-        const appOp = Math.max(0, (p - 0.2) / 0.15);
-        (skyMeshRef.current.material as THREE.MeshBasicMaterial).opacity = 1.0 - appOp * 0.5;
-        (approachMeshRef.current.material as THREE.MeshBasicMaterial).opacity = appOp;
-        (hangarMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 0;
         (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 0;
         if (runwayLightsGroupRef.current) runwayLightsGroupRef.current.visible = false;
-      } else if (p < 0.68) {
-        // Approach leading directly to airport runway
-        const descentProgress = (p - 0.35) / 0.33;
-        (skyMeshRef.current.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 1.0 - descentProgress * 1.5);
-        (approachMeshRef.current.material as THREE.MeshBasicMaterial).opacity = 1.0 - descentProgress * 0.4;
-        (hangarMeshRef.current.material as THREE.MeshStandardMaterial).opacity = Math.max(0, (descentProgress - 0.5) * 2);
-        (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = descentProgress;
-
-        if (runwayLightsGroupRef.current) {
-          runwayLightsGroupRef.current.visible = true;
-        }
+        airportSunsetMeshRef.current.position.y = 24;
       } else {
-        // Landed on Tarmac in Hangar Bay
-        (skyMeshRef.current.material as THREE.MeshBasicMaterial).opacity = 0;
-        (approachMeshRef.current.material as THREE.MeshBasicMaterial).opacity = 0;
-        (hangarMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 1.0;
-        (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 1.0;
+        const landingProgress = Math.min(1, (p - 0.35) / 0.3);
+        (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = landingProgress * 0.95;
         if (runwayLightsGroupRef.current) runwayLightsGroupRef.current.visible = true;
+        airportSunsetMeshRef.current.position.y = 24 - landingProgress * 8;
       }
     }
 
-    // 1. Aircraft Trajectory, Pitch, Roll & Landing
+    // 1. Aircraft Trajectory, Descent, and Flare Landing
     if (p < 0.38) {
-      // High Flight
+      // Phase 1: High Flight at Sunset above the Airport Skyline
       const sub = p / 0.38;
       aircraft.root.position.y = 3.8 - sub * 1.6;
       aircraft.root.position.z = sub * -2.5;
@@ -447,27 +389,27 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
       aircraft.root.rotation.z = Math.sin(sub * Math.PI * 1.5) * 0.12;
       aircraft.root.rotation.y = 0.2 - sub * 0.2;
 
-      lights.sun.intensity = 3.2;
-      lights.hangarSpot1.intensity = 0;
-      lights.hangarSpot2.intensity = 0;
+      lights.sun.intensity = 3.6;
+      lights.tarmacLight1.intensity = 0;
+      lights.tarmacLight2.intensity = 0;
       aircraft.landingLights.forEach((l) => (l.intensity = 0));
     } else if (p < 0.68) {
-      // Final Approach & Touchdown on Runway
+      // Phase 2: Approach & Touchdown on London City Runway
       const sub = (p - 0.38) / 0.3;
-      aircraft.root.position.y = 2.2 - sub * 2.2; // touches down smoothly at y = 0
+      aircraft.root.position.y = 2.2 - sub * 2.2; // touches down smoothly on runway at y = 0
       aircraft.root.position.z = -2.5 + sub * 2.5;
-      aircraft.root.rotation.x = 0.04 * (1 - sub); // flare on touchdown
+      aircraft.root.rotation.x = 0.04 * (1 - sub); // aerodynamic flare on landing
       aircraft.root.rotation.z = 0.05 * (1 - sub);
       aircraft.root.rotation.y = sub * 0.08;
 
-      lights.sun.intensity = 3.2 - sub * 1.8;
-      lights.hangarSpot1.intensity = sub * 3.8;
-      lights.hangarSpot2.intensity = sub * 3.2;
+      lights.sun.intensity = 3.6 - sub * 1.5;
+      lights.tarmacLight1.intensity = sub * 3.8;
+      lights.tarmacLight2.intensity = sub * 3.2;
 
-      // Turn on aircraft landing lights to illuminate the runway
-      aircraft.landingLights.forEach((l) => (l.intensity = sub * 4.0));
+      // Aircraft Landing Lights turn on to illuminate runway
+      aircraft.landingLights.forEach((l) => (l.intensity = sub * 4.2));
     } else {
-      // Docked on Tarmac / Hangar Exploded Inspection
+      // Phase 3: Landed on Airport Runway / Disassembly View
       aircraft.root.position.set(0, 0, 0);
       aircraft.root.rotation.set(
         0.03,
@@ -475,13 +417,13 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
         isOrbitMode ? orbitRotation.current.x : 0
       );
 
-      lights.sun.intensity = 1.2;
-      lights.hangarSpot1.intensity = 4.8;
-      lights.hangarSpot2.intensity = 4.2;
-      aircraft.landingLights.forEach((l) => (l.intensity = 1.5));
+      lights.sun.intensity = 2.2;
+      lights.tarmacLight1.intensity = 4.8;
+      lights.tarmacLight2.intensity = 4.2;
+      aircraft.landingLights.forEach((l) => (l.intensity = 2.0));
     }
 
-    // 2. Component Exploded Displacement
+    // 2. Explode Components along vectors
     const ef = smoothExploded.current;
     aircraft.radomeAvionics.position.set(0, 1.8 * ef, 4.8 * ef);
     aircraft.engineLeft.position.set(-4.4 - 2.8 * ef, -0.95 - 2.2 * ef, 1.3 + 3.2 * ef);
@@ -501,7 +443,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     aircraft.hydraulics.position.set(0.85 - 1.3 * ef, 0.22 + 2.4 * ef, -1.8 - 2.6 * ef);
     aircraft.fuelSystem.position.set(0, -0.65 - 3.2 * ef, 0.2 - 1.6 * ef);
 
-    // 3. Camera Framing Logic
+    // 3. Camera Trajectory Logic
     if (selectedComponentId) {
       const selected = AIRCRAFT_COMPONENTS.find((c) => c.id === selectedComponentId);
       if (selected) {
@@ -512,17 +454,17 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     }
 
     if (p < 0.35) {
-      // High Flight Chase View
+      // Cinematic Chase Shot with Sunset Airport in background
       const sub = p / 0.35;
       targetCamPos.current.set(14 - sub * 4, 5 - sub * 1.5, 25 - sub * 6);
       targetCamLook.current.set(0, 2 - sub * 1, 0);
     } else if (p < 0.68) {
-      // Runway Approach & Descent along the approach corridor
+      // Approach down glideslope leading to airport runway
       const sub = (p - 0.35) / 0.33;
       targetCamPos.current.set(10 - sub * 2.5, 3.5 - sub * 1.5, 19 - sub * 5.5);
       targetCamLook.current.set(0, 0.6 - sub * 0.6, 0);
     } else {
-      // Disassembly Micro Inspection
+      // Disassembly close-up inspection on runway
       const sub = (p - 0.68) / 0.32;
       targetCamPos.current.set(7.5 - sub * 1.2, 2.6 + sub * 0.6, 13.5 - sub * 2.5);
       targetCamLook.current.set(1.4 * sub, 0, 0);

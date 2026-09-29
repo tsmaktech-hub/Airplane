@@ -1,7 +1,9 @@
 import { AircraftComponentTarget, AircraftPart, AirframeFamily } from '../types/aviation';
 
-// Local generated visual assets
+// Local generated & requested visual assets
 export const ASSET_IMAGES = {
+  londonAirportSunset: '/src/assets/images/london_airport_sunset.jpg',
+  white3dAirplane: '/src/assets/images/white_3d_aeroplane_1790712697975.jpg',
   skyClouds: '/src/assets/images/high_sky_clouds_1790711651359.jpg',
   airportApproach: '/src/assets/images/airport_runway_approach_1790711664357.jpg',
   hangarBay: '/src/assets/images/aerospace_hangar_bay_1790708439374.jpg',

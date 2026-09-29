@@ -28,157 +28,142 @@ export interface AircraftMeshGroups {
 }
 
 /**
- * Creates high-resolution procedural canvas textures for real commercial airliner details:
- * - Fuselage passenger windows with cabin glow, passenger doors, emergency escape lines
- * - Cockpit windshield frames, registration "N737-AC", airline livery stripes & stencils
- * - Engine spinner spiral cone pattern
- * - Tail fin AeroCore logo
+ * Creates high-resolution procedural canvas textures for the user-specified
+ * pure white 3D commercial jet aeroplane:
+ * - Glossy pristine white fuselage with subtle aerospace panel lines
+ * - Dark-tinted passenger cabin windows with realistic frame bezels
+ * - Cockpit windshield glass with multi-pane framing
+ * - Clean white engine cowlings and tail fin
  */
-function createFuselageTexture(): THREE.CanvasTexture {
+function createWhiteFuselageTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 2048;
   canvas.height = 1024;
   const ctx = canvas.getContext('2d')!;
 
-  // 1. Base Aircraft Skin - Deep aeronautical obsidian / metallic titanium
+  // 1. Pristine Pearlescent White Aircraft Skin
   const grad = ctx.createLinearGradient(0, 0, 0, 1024);
-  grad.addColorStop(0, '#1c222c');
-  grad.addColorStop(0.3, '#2a3240');
-  grad.addColorStop(0.5, '#222935');
-  grad.addColorStop(0.8, '#181d26');
-  grad.addColorStop(1, '#11141a');
+  grad.addColorStop(0, '#f8fafc');
+  grad.addColorStop(0.3, '#ffffff');
+  grad.addColorStop(0.5, '#f1f5f9');
+  grad.addColorStop(0.7, '#ffffff');
+  grad.addColorStop(1, '#e2e8f0');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 2048, 1024);
 
-  // 2. Subtle Rivet & Panel Seams
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+  // 2. Ultra-Delicate Panel Lines & Rivet Seams
+  ctx.strokeStyle = 'rgba(100, 116, 139, 0.18)';
   ctx.lineWidth = 1;
-  for (let x = 120; x < 1900; x += 110) {
+  for (let x = 140; x < 1920; x += 110) {
     ctx.beginPath();
-    ctx.moveTo(x, 150);
-    ctx.lineTo(x, 874);
+    ctx.moveTo(x, 180);
+    ctx.lineTo(x, 844);
     ctx.stroke();
   }
-  for (let y = 250; y < 800; y += 120) {
+  for (let y = 280; y < 760; y += 110) {
     ctx.beginPath();
     ctx.moveTo(100, y);
-    ctx.lineTo(1950, y);
+    ctx.lineTo(1940, y);
     ctx.stroke();
   }
 
-  // 3. Airline Livery Accent Waves (Cyan and Polished Silver Speedlines)
+  // 3. Subtle Sleek Aviation Accent Line (Clean Titanium / Cyan Trim)
   ctx.fillStyle = '#0284c7';
   ctx.beginPath();
-  ctx.moveTo(80, 520);
-  ctx.bezierCurveTo(400, 520, 1200, 480, 2048, 430);
-  ctx.lineTo(2048, 470);
-  ctx.bezierCurveTo(1200, 520, 400, 550, 80, 550);
+  ctx.moveTo(100, 525);
+  ctx.bezierCurveTo(450, 525, 1200, 490, 2048, 450);
+  ctx.lineTo(2048, 465);
+  ctx.bezierCurveTo(1200, 505, 450, 540, 100, 540);
   ctx.closePath();
   ctx.fill();
 
   ctx.fillStyle = '#38bdf8';
   ctx.beginPath();
-  ctx.moveTo(80, 550);
-  ctx.bezierCurveTo(400, 550, 1200, 510, 2048, 470);
-  ctx.lineTo(2048, 490);
-  ctx.bezierCurveTo(1200, 530, 400, 565, 80, 565);
+  ctx.moveTo(100, 540);
+  ctx.bezierCurveTo(450, 540, 1200, 510, 2048, 475);
+  ctx.lineTo(2048, 485);
+  ctx.bezierCurveTo(1200, 520, 450, 550, 100, 550);
   ctx.closePath();
   ctx.fill();
 
-  // 4. Passenger Windows with Warm Cabin Interior Glow
+  // 4. Passenger Windows with Realistic Tinted Glass & Silver Bezels
   const drawWindowRow = (startY: number) => {
     for (let i = 0; i < 34; i++) {
       const wx = 380 + i * 42;
-      // Skip over wing door gap
-      if (i >= 15 && i <= 17) continue;
+      if (i >= 15 && i <= 17) continue; // wing exit gap
 
       // Chrome window bezel
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = '#cbd5e1';
       ctx.beginPath();
       ctx.roundRect(wx - 1, startY - 1, 18, 26, 6);
       ctx.fill();
 
-      // Window Glass with ambient cabin light
+      // Tinted dark glass with sky reflection
       const winGrad = ctx.createLinearGradient(wx, startY, wx, startY + 24);
       winGrad.addColorStop(0, '#0f172a');
-      winGrad.addColorStop(0.4, '#1e293b');
-      winGrad.addColorStop(0.85, '#38bdf8');
-      winGrad.addColorStop(1, '#7dd3fc');
+      winGrad.addColorStop(0.5, '#1e293b');
+      winGrad.addColorStop(0.85, '#0284c7');
+      winGrad.addColorStop(1, '#38bdf8');
       ctx.fillStyle = winGrad;
       ctx.beginPath();
       ctx.roundRect(wx, startY, 16, 24, 5);
       ctx.fill();
 
-      // Window divider shade reflection
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      // Diagonal window reflection line
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(wx + 4, startY + 3);
-      ctx.lineTo(wx + 12, startY + 12);
+      ctx.moveTo(wx + 3, startY + 3);
+      ctx.lineTo(wx + 13, startY + 13);
       ctx.stroke();
     }
   };
 
-  // Port and Starboard window rows on texture map
-  drawWindowRow(410);
-  drawWindowRow(610);
+  drawWindowRow(415);
+  drawWindowRow(615);
 
   // 5. Commercial Passenger Doors (Door 1L, Overwing Exit, Aft Door)
   const drawDoor = (dx: number, dy: number, w: number, h: number, label: string) => {
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
     ctx.strokeRect(dx, dy, w, h);
 
-    // Inner door window
-    ctx.fillStyle = '#0ea5e9';
+    // Door window
+    ctx.fillStyle = '#0f172a';
     ctx.beginPath();
-    ctx.roundRect(dx + w / 2 - 6, dy + 20, 12, 18, 4);
+    ctx.roundRect(dx + w / 2 - 6, dy + 18, 12, 18, 4);
     ctx.fill();
 
-    // Door latch handle
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(dx + 8, dy + h / 2, 10, 4);
+    // Handle
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(dx + 8, dy + h / 2, 8, 3);
 
-    // Warning text
-    ctx.font = 'bold 9px monospace';
-    ctx.fillStyle = '#facc15';
-    ctx.fillText(label, dx - 4, dy + h + 14);
+    // Label
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(label, dx - 2, dy + h + 12);
   };
 
-  drawDoor(280, 370, 42, 95, 'DOOR 1L');
-  drawDoor(980, 390, 36, 75, 'EMERGENCY EXIT');
-  drawDoor(1720, 370, 42, 95, 'DOOR 2L');
+  drawDoor(280, 375, 42, 95, 'DOOR 1L');
+  drawDoor(980, 395, 36, 75, 'EXIT');
+  drawDoor(1720, 375, 42, 95, 'DOOR 2L');
 
-  // Opposite side doors
-  drawDoor(280, 580, 42, 95, 'DOOR 1R');
-  drawDoor(980, 580, 36, 75, 'EMERGENCY EXIT');
-  drawDoor(1720, 580, 42, 95, 'DOOR 2R');
+  drawDoor(280, 585, 42, 95, 'DOOR 1R');
+  drawDoor(980, 585, 36, 75, 'EXIT');
+  drawDoor(1720, 585, 42, 95, 'DOOR 2R');
 
-  // 6. Bold Aerospace Branding: "AEROCORE TECHNOLOGIES"
-  ctx.font = '700 32px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#ffffff';
+  // 6. Clean Typography Branding
+  ctx.font = '700 30px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#1e293b';
   ctx.letterSpacing = '4px';
-  ctx.fillText('AEROCORE TECHNOLOGIES', 380, 360);
+  ctx.fillText('AEROCORE TECHNOLOGIES', 380, 365);
   ctx.fillText('AEROCORE TECHNOLOGIES', 380, 725);
 
-  ctx.font = '500 13px monospace';
-  ctx.fillStyle = '#38bdf8';
-  ctx.fillText('COMMERCIAL ROTABLE FLEET · CFM LEAP POWERED', 385, 385);
-  ctx.fillText('COMMERCIAL ROTABLE FLEET · CFM LEAP POWERED', 385, 750);
-
   // 7. Aircraft Tail Registration
-  ctx.font = 'bold 22px monospace';
-  ctx.fillStyle = '#e2e8f0';
-  ctx.fillText('N737-AC', 1650, 340);
+  ctx.font = 'bold 20px monospace';
+  ctx.fillStyle = '#475569';
+  ctx.fillText('N737-AC', 1650, 345);
   ctx.fillText('N737-AC', 1650, 745);
-
-  // 8. Technical Stencils (Pitot Port, Danger, No Step)
-  ctx.font = 'bold 8px monospace';
-  ctx.fillStyle = '#ef4444';
-  ctx.fillText('STATIC PORT - DO NOT PLUG', 180, 490);
-  ctx.fillText('STATIC PORT - DO NOT PLUG', 180, 570);
-  ctx.fillStyle = '#e2e8f0';
-  ctx.fillText('CUT HERE IN EMERGENCY', 1250, 350);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
@@ -187,8 +172,7 @@ function createFuselageTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Creates the engine turbofan spinner cone spiral texture
- * (Iconic white spiral painted on jet engine spinners)
+ * Creates engine spinner spiral texture
  */
 function createSpinnerSpiralTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -196,13 +180,11 @@ function createSpinnerSpiralTexture(): THREE.CanvasTexture {
   canvas.height = 512;
   const ctx = canvas.getContext('2d')!;
 
-  // Shiny black cone background
-  ctx.fillStyle = '#111418';
+  ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Archimedean Spiral in crisp white
   ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 22;
+  ctx.lineWidth = 24;
   ctx.lineCap = 'round';
   ctx.beginPath();
   const centerX = 256;
@@ -220,47 +202,42 @@ function createSpinnerSpiralTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Creates Tail Fin Logo Texture
+ * Creates Tail Fin Logo Texture on white vertical stabilizer
  */
-function createTailFinTexture(): THREE.CanvasTexture {
+function createWhiteTailFinTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
   const ctx = canvas.getContext('2d')!;
 
-  // Deep navy to black vertical fin gradient
-  const grad = ctx.createLinearGradient(0, 0, 512, 512);
-  grad.addColorStop(0, '#0f172a');
-  grad.addColorStop(0.5, '#0284c7');
-  grad.addColorStop(1, '#0369a1');
-  ctx.fillStyle = grad;
+  // Pure white base
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, 512, 512);
 
-  // AeroCore Chevron Wings Logo
-  ctx.fillStyle = '#ffffff';
+  // AeroCore stylized cyan/navy chevron wings insignia
+  ctx.fillStyle = '#0284c7';
   ctx.beginPath();
-  ctx.moveTo(256, 120);
-  ctx.lineTo(390, 330);
-  ctx.lineTo(320, 330);
+  ctx.moveTo(256, 110);
+  ctx.lineTo(400, 340);
+  ctx.lineTo(330, 340);
   ctx.lineTo(256, 220);
-  ctx.lineTo(192, 330);
-  ctx.lineTo(122, 330);
+  ctx.lineTo(182, 340);
+  ctx.lineTo(112, 340);
   ctx.closePath();
   ctx.fill();
 
-  // Cyan glowing inner accent
   ctx.fillStyle = '#38bdf8';
   ctx.beginPath();
-  ctx.moveTo(256, 240);
-  ctx.lineTo(300, 320);
-  ctx.lineTo(212, 320);
+  ctx.moveTo(256, 235);
+  ctx.lineTo(305, 325);
+  ctx.lineTo(207, 325);
   ctx.closePath();
   ctx.fill();
 
   ctx.font = 'bold 24px monospace';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#0f172a';
   ctx.textAlign = 'center';
-  ctx.fillText('AEROCORE', 256, 400);
+  ctx.fillText('AEROCORE', 256, 410);
 
   return new THREE.CanvasTexture(canvas);
 }
@@ -269,30 +246,38 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   const root = new THREE.Group();
   root.name = 'AircraftRoot';
 
-  // Load / Generate High-Fidelity Textures
-  const fuselageTexture = createFuselageTexture();
+  const fuselageTexture = createWhiteFuselageTexture();
   const spinnerTexture = createSpinnerSpiralTexture();
-  const tailTexture = createTailFinTexture();
+  const tailTexture = createWhiteTailFinTexture();
 
-  // --- High-Grade PBR Materials for Real Jetliner ---
-  const fuselageMat = new THREE.MeshStandardMaterial({
+  // --- High-Grade PBR Materials for Pure White 3D Aeroplane ---
+  const whiteFuselageMat = new THREE.MeshStandardMaterial({
     map: fuselageTexture,
-    metalness: 0.72,
-    roughness: 0.28,
-    envMapIntensity: 1.5,
+    color: 0xffffff,
+    metalness: 0.22,
+    roughness: 0.2,
+    envMapIntensity: 1.6,
+  });
+
+  const whiteWingMat = new THREE.MeshStandardMaterial({
+    color: 0xf8fafc,
+    metalness: 0.18,
+    roughness: 0.25,
+    envMapIntensity: 1.4,
   });
 
   const leadingEdgeMat = new THREE.MeshStandardMaterial({
-    color: 0xd4dbe4,
-    metalness: 0.95,
-    roughness: 0.12,
-    envMapIntensity: 1.8,
+    color: 0xe2e8f0,
+    metalness: 0.94,
+    roughness: 0.1,
+    envMapIntensity: 2.0,
   });
 
-  const tailFinMat = new THREE.MeshStandardMaterial({
+  const whiteTailFinMat = new THREE.MeshStandardMaterial({
     map: tailTexture,
-    metalness: 0.65,
-    roughness: 0.32,
+    color: 0xffffff,
+    metalness: 0.2,
+    roughness: 0.25,
   });
 
   const carbonBrakeMat = new THREE.MeshStandardMaterial({
@@ -304,15 +289,15 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   const tireMat = new THREE.MeshStandardMaterial({
     color: 0x141518,
     metalness: 0.08,
-    roughness: 0.9,
+    roughness: 0.88,
   });
 
   const cockpitGlassMat = new THREE.MeshStandardMaterial({
-    color: 0x0284c7,
-    metalness: 0.92,
-    roughness: 0.06,
+    color: 0x0f172a,
+    metalness: 0.95,
+    roughness: 0.05,
     transparent: true,
-    opacity: 0.88,
+    opacity: 0.92,
   });
 
   const goldAvionicsMat = new THREE.MeshStandardMaterial({
@@ -322,9 +307,9 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   });
 
   const hydraulicPistonMat = new THREE.MeshStandardMaterial({
-    color: 0xf1f5f9,
+    color: 0xf8fafc,
     metalness: 0.98,
-    roughness: 0.08,
+    roughness: 0.06,
   });
 
   const fanBladeMat = new THREE.MeshStandardMaterial({
@@ -335,8 +320,8 @@ export function buildAeroAircraft(): AircraftMeshGroups {
 
   const spinnerMat = new THREE.MeshStandardMaterial({
     map: spinnerTexture,
-    metalness: 0.7,
-    roughness: 0.25,
+    metalness: 0.65,
+    roughness: 0.22,
   });
 
   const fanBlades: THREE.Mesh[] = [];
@@ -345,20 +330,20 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   const landingLights: THREE.SpotLight[] = [];
 
   // ==========================================
-  // 1. FUSELAGE & EMPENNAGE
+  // 1. PURE WHITE FUSELAGE & EMPENNAGE
   // ==========================================
   const fuselage = new THREE.Group();
   fuselage.name = 'FuselageGroup';
 
-  // Main Aerodynamic Fuselage Tube
+  // Main Pure White Fuselage Tube
   const tubeGeo = new THREE.CylinderGeometry(1.25, 1.25, 13.5, 48, 1, false);
   tubeGeo.rotateX(Math.PI / 2);
-  const tubeMesh = new THREE.Mesh(tubeGeo, fuselageMat);
+  const tubeMesh = new THREE.Mesh(tubeGeo, whiteFuselageMat);
   tubeMesh.castShadow = true;
   tubeMesh.receiveShadow = true;
   fuselage.add(tubeMesh);
 
-  // Cockpit Windshield Visor & Anti-Glare Nose Patch
+  // Cockpit Windshield Visor (Sleek dark glass visor)
   const visorGeo = new THREE.CylinderGeometry(1.255, 1.255, 2.0, 36, 1, false, -Math.PI / 3, (Math.PI * 2) / 3);
   visorGeo.rotateX(Math.PI / 2);
   visorGeo.rotateZ(Math.PI);
@@ -372,14 +357,14 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   frameMesh.position.set(0, 1.15, 5.2);
   fuselage.add(frameMesh);
 
-  // Top SATCOM Radome Fairing (Broadband satellite hump on fuselage crown)
+  // Top White SATCOM Radome Fairing
   const satcomGeo = new THREE.SphereGeometry(0.45, 24, 16);
   satcomGeo.scale(0.8, 0.35, 2.8);
-  const satcomMesh = new THREE.Mesh(satcomGeo, leadingEdgeMat);
+  const satcomMesh = new THREE.Mesh(satcomGeo, whiteWingMat);
   satcomMesh.position.set(0, 1.35, 0.5);
   fuselage.add(satcomMesh);
 
-  // VHF/UHF Blade Antennas
+  // Antennas
   const createAntenna = (y: number, z: number, isDown = false) => {
     const antGeo = new THREE.BoxGeometry(0.04, 0.3, 0.25);
     const antMesh = new THREE.Mesh(antGeo, leadingEdgeMat);
@@ -391,22 +376,22 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   createAntenna(1.4, -3.5);
   createAntenna(-1.35, 2.0, true);
 
-  // Tail Cone tapering towards APU
+  // Tail Cone
   const tailConeGeo = new THREE.ConeGeometry(1.25, 6.2, 40);
   tailConeGeo.rotateX(-Math.PI / 2);
-  const tailConeMesh = new THREE.Mesh(tailConeGeo, fuselageMat);
+  const tailConeMesh = new THREE.Mesh(tailConeGeo, whiteFuselageMat);
   tailConeMesh.position.set(0, 0.25, -9.8);
   tailConeMesh.castShadow = true;
   fuselage.add(tailConeMesh);
 
-  // APU (Auxiliary Power Unit) Exhaust Nozzle at the extreme tail tip
+  // APU Exhaust
   const apuGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.4, 16);
   apuGeo.rotateX(Math.PI / 2);
   const apuMesh = new THREE.Mesh(apuGeo, carbonBrakeMat);
   apuMesh.position.set(0, 0.25, -12.95);
   fuselage.add(apuMesh);
 
-  // Swept Vertical Stabilizer (Tail Fin)
+  // Swept Pure White Vertical Stabilizer (Tail Fin)
   const finShape = new THREE.Shape();
   finShape.moveTo(0, 0);
   finShape.lineTo(-4.2, 0);
@@ -422,12 +407,12 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     bevelThickness: 0.05,
   });
   finExtrude.rotateY(Math.PI / 2);
-  const finMesh = new THREE.Mesh(finExtrude, tailFinMat);
+  const finMesh = new THREE.Mesh(finExtrude, whiteTailFinMat);
   finMesh.position.set(0.12, 1.1, -9.5);
   finMesh.castShadow = true;
   fuselage.add(finMesh);
 
-  // Swept Horizontal Stabilizers (Tailplanes)
+  // Swept Horizontal Stabilizers
   const horizShape = new THREE.Shape();
   horizShape.moveTo(0, 0);
   horizShape.lineTo(4.8, -2.1);
@@ -442,7 +427,7 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   });
   horizExtrude.rotateX(Math.PI / 2);
 
-  const horizLeft = new THREE.Mesh(horizExtrude, leadingEdgeMat);
+  const horizLeft = new THREE.Mesh(horizExtrude, whiteWingMat);
   horizLeft.position.set(0, 0.45, -10.2);
   horizLeft.rotation.z = 0.08;
   fuselage.add(horizLeft);
@@ -460,16 +445,15 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   const radomeAvionics = new THREE.Group();
   radomeAvionics.name = 'RadomeAvionicsGroup';
 
-  // Aerodynamic Nose Radome Shell
   const noseConeGeo = new THREE.SphereGeometry(1.25, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2);
   noseConeGeo.rotateX(Math.PI / 2);
-  const noseMesh = new THREE.Mesh(noseConeGeo, fuselageMat);
+  const noseMesh = new THREE.Mesh(noseConeGeo, whiteFuselageMat);
   noseMesh.position.set(0, 0, 6.75);
   noseMesh.scale.set(1, 0.92, 1.7);
   noseMesh.castShadow = true;
   radomeAvionics.add(noseMesh);
 
-  // Pitot Probes on Radome Side
+  // Pitot Probes
   const pitotGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.25, 8);
   pitotGeo.rotateX(Math.PI / 2);
   const pitotLeft = new THREE.Mesh(pitotGeo, leadingEdgeMat);
@@ -479,14 +463,14 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   radomeAvionics.add(pitotLeft);
   radomeAvionics.add(pitotRight);
 
-  // Internal Phased-Array Weather Radar Scanner
+  // Internal Radar Dish
   const radarDishGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.18, 32);
   radarDishGeo.rotateX(Math.PI / 2);
   const radarDish = new THREE.Mesh(radarDishGeo, goldAvionicsMat);
   radarDish.position.set(0, 0.05, 6.9);
   radomeAvionics.add(radarDish);
 
-  // Modular Avionics Computer Bins (ARINC 600)
+  // Avionics Computers
   const rackGeo = new THREE.BoxGeometry(0.45, 0.38, 0.85);
   const rackLeft = new THREE.Mesh(rackGeo, goldAvionicsMat);
   rackLeft.position.set(-0.45, -0.15, 5.8);
@@ -498,13 +482,13 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   root.add(radomeAvionics);
 
   // ==========================================
-  // 3. SWEPT WINGS & FLAP TRACK CANOES
+  // 3. PURE WHITE SWEPT WINGS & FLAP TRACK CANOES
   // ==========================================
   const createWing = (isRight: boolean) => {
     const wingGroup = new THREE.Group();
     const sign = isRight ? 1 : -1;
 
-    // Supercritical Cambered Main Wing
+    // Supercritical Cambered Main Wing in Pure White
     const wingShape = new THREE.Shape();
     wingShape.moveTo(0, 0);
     wingShape.lineTo(11.2 * sign, -4.8);
@@ -521,7 +505,7 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     });
     wingExtrude.rotateX(Math.PI / 2);
 
-    const wingMesh = new THREE.Mesh(wingExtrude, fuselageMat);
+    const wingMesh = new THREE.Mesh(wingExtrude, whiteWingMat);
     wingMesh.castShadow = true;
     wingMesh.receiveShadow = true;
     wingGroup.add(wingMesh);
@@ -538,19 +522,19 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     const edgeMesh = new THREE.Mesh(edgeExtrude, leadingEdgeMat);
     wingGroup.add(edgeMesh);
 
-    // Flap Track Fairings ("Canoes" under wing - standard on modern airliners!)
+    // White Flap Track Fairings ("Canoes")
     const canoeOffsets = [3.2, 5.5, 7.8];
     canoeOffsets.forEach((dist) => {
       const canoeGeo = new THREE.ConeGeometry(0.16, 1.8, 16);
       canoeGeo.rotateX(Math.PI / 2);
-      const canoeMesh = new THREE.Mesh(canoeGeo, leadingEdgeMat);
+      const canoeMesh = new THREE.Mesh(canoeGeo, whiteWingMat);
       canoeMesh.scale.set(1, 0.65, 1);
       const backOffset = -2.2 - (dist / 11.2) * 2.6;
       canoeMesh.position.set(dist * sign, -0.32, backOffset);
       wingGroup.add(canoeMesh);
     });
 
-    // Blended Winglet / Sharklet
+    // White Blended Winglet
     const wingletShape = new THREE.Shape();
     wingletShape.moveTo(0, 0);
     wingletShape.lineTo(0.35 * sign, 2.1);
@@ -564,11 +548,11 @@ export function buildAeroAircraft(): AircraftMeshGroups {
       bevelThickness: 0.03,
     });
     wingletExtrude.rotateY(Math.PI / 2);
-    const wingletMesh = new THREE.Mesh(wingletExtrude, tailFinMat);
+    const wingletMesh = new THREE.Mesh(wingletExtrude, whiteWingMat);
     wingletMesh.position.set(11.2 * sign, 0.15, -4.9);
     wingGroup.add(wingletMesh);
 
-    // Navigation Wingtip Light (Green = Starboard/Right, Red = Port/Left)
+    // Navigation Lights
     const navLightColor = isRight ? 0x10b981 : 0xef4444;
     const navLight = new THREE.PointLight(navLightColor, 3.5, 10);
     navLight.position.set(11.3 * sign, 0.25, -4.9);
@@ -582,7 +566,7 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     bulbMesh.position.copy(navLight.position);
     wingGroup.add(bulbMesh);
 
-    // Wing Landing Light Beam (illuminates runway!)
+    // Wing Landing Light Beam
     const wingSpot = new THREE.SpotLight(0xfffbeb, 2.5, 30, Math.PI / 6, 0.3, 1);
     wingSpot.position.set(3.8 * sign, -0.2, 0.5);
     wingSpot.target.position.set(3.8 * sign, -4.0, 15);
@@ -591,7 +575,7 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     landingLights.push(wingSpot);
 
     wingGroup.position.set(0, -0.2, 1.2);
-    wingGroup.rotation.z = isRight ? -0.065 : 0.065; // realistic dihedral angle
+    wingGroup.rotation.z = isRight ? -0.065 : 0.065;
     return wingGroup;
   };
 
@@ -628,7 +612,7 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     const aileronGroup = new THREE.Group();
     const sign = isRight ? 1 : -1;
     const aileronGeo = new THREE.BoxGeometry(3.5, 0.14, 0.65);
-    const aileronMesh = new THREE.Mesh(aileronGeo, fuselageMat);
+    const aileronMesh = new THREE.Mesh(aileronGeo, whiteWingMat);
     aileronMesh.castShadow = true;
     aileronGroup.add(aileronMesh);
     aileronGroup.position.set(8.8 * sign, 0.12, -4.6);
@@ -644,40 +628,40 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   root.add(aileronRight);
 
   // ==========================================
-  // 5. CFM LEAP HIGH-BYPASS TURBOFAN ENGINES
+  // 5. PURE WHITE TURBOFAN ENGINES
   // ==========================================
   const createEngine = (isRight: boolean) => {
     const engineGroup = new THREE.Group();
     const sign = isRight ? 1 : -1;
 
-    // Aerodynamic Engine Pylon Mount
+    // White Pylon Mount
     const pylonGeo = new THREE.BoxGeometry(0.32, 0.9, 2.8);
-    const pylonMesh = new THREE.Mesh(pylonGeo, fuselageMat);
+    const pylonMesh = new THREE.Mesh(pylonGeo, whiteWingMat);
     pylonMesh.position.set(0, 0.75, 0.2);
     engineGroup.add(pylonMesh);
 
-    // Nacelle Cowling Outer Barrel
+    // Pure White Nacelle Barrel
     const nacelleGeo = new THREE.CylinderGeometry(1.05, 0.98, 3.4, 40, 1, true);
     nacelleGeo.rotateX(Math.PI / 2);
-    const nacelleMesh = new THREE.Mesh(nacelleGeo, fuselageMat);
+    const nacelleMesh = new THREE.Mesh(nacelleGeo, whiteWingMat);
     nacelleMesh.castShadow = true;
     nacelleMesh.receiveShadow = true;
     engineGroup.add(nacelleMesh);
 
-    // Polished Mirror Chrome Intake Lip
+    // Mirror-Chrome Intake Lip
     const lipGeo = new THREE.TorusGeometry(1.05, 0.1, 20, 40);
     const lipMesh = new THREE.Mesh(lipGeo, leadingEdgeMat);
     lipMesh.position.set(0, 0, 1.7);
     engineGroup.add(lipMesh);
 
-    // Nacelle Vortex Strake (Chine) on inboard side
+    // Nacelle Vortex Strake (Chine)
     const chineGeo = new THREE.BoxGeometry(0.04, 0.35, 0.8);
     const chineMesh = new THREE.Mesh(chineGeo, leadingEdgeMat);
     chineMesh.position.set(-0.95 * sign, 0.1, 0.6);
     chineMesh.rotation.z = -0.3 * sign;
     engineGroup.add(chineMesh);
 
-    // Center Turbofan Spinner with Iconic White Painted Spiral
+    // Center Spinner Cone with White Spiral
     const spinnerGeo = new THREE.ConeGeometry(0.38, 1.3, 32);
     spinnerGeo.rotateX(Math.PI / 2);
     const spinnerMesh = new THREE.Mesh(spinnerGeo, spinnerMat);
@@ -685,7 +669,7 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     engineGroup.add(spinnerMesh);
     spinners.push(spinnerMesh);
 
-    // Full Titanium Fan Blades Disk
+    // Titanium Fan Blades
     const fanGroup = new THREE.Group();
     fanGroup.position.set(0, 0, 1.05);
     const bladeCount = 24;
@@ -701,7 +685,7 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     engineGroup.add(fanGroup);
     fanBlades.push(fanGroup as unknown as THREE.Mesh);
 
-    // Rear Exhaust Nozzle & Center Exhaust Spike
+    // Exhaust Nozzle & Core Spike
     const exhaustGeo = new THREE.CylinderGeometry(0.78, 0.62, 1.1, 32, 1, true);
     exhaustGeo.rotateX(Math.PI / 2);
     const exhaustMesh = new THREE.Mesh(exhaustGeo, carbonBrakeMat);
@@ -726,9 +710,8 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   root.add(engineRight);
 
   // ==========================================
-  // 6. REALISTIC LANDING GEAR, BRAKES & WHEELS
+  // 6. LANDING GEAR & BRAKES
   // ==========================================
-  // Dual-Wheel Nose Gear with Taxi Lights
   const gearNose = new THREE.Group();
   gearNose.name = 'GearNoseGroup';
 
@@ -736,13 +719,11 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   const noseStrut = new THREE.Mesh(noseStrutGeo, hydraulicPistonMat);
   gearNose.add(noseStrut);
 
-  // Nose Steering Collar & Torque Scissors
   const scissorGeo = new THREE.BoxGeometry(0.05, 0.4, 0.1);
   const scissor = new THREE.Mesh(scissorGeo, leadingEdgeMat);
   scissor.position.set(0, -0.4, 0.12);
   gearNose.add(scissor);
 
-  // Dual Nose Tires with Alloy Hubs
   const noseWheelGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.2, 24);
   noseWheelGeo.rotateZ(Math.PI / 2);
   const noseWheel1 = new THREE.Mesh(noseWheelGeo, tireMat);
@@ -752,7 +733,6 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   gearNose.add(noseWheel1);
   gearNose.add(noseWheel2);
 
-  // Nose Gear Taxi/Takeoff Floodlight
   const noseTaxiLight = new THREE.SpotLight(0xfffbeb, 3.8, 35, Math.PI / 7, 0.3, 1);
   noseTaxiLight.position.set(0, -0.5, 0.2);
   noseTaxiLight.target.position.set(0, -3.2, 18);
@@ -763,30 +743,25 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   gearNose.position.set(0, -1.45, 4.8);
   root.add(gearNose);
 
-  // Main Landing Gear (Left & Right)
   const createMainGear = (isRight: boolean) => {
     const gearGroup = new THREE.Group();
     const sign = isRight ? 1 : -1;
 
-    // Heavy Oleo-Pneumatic Shock Strut
     const strutGeo = new THREE.CylinderGeometry(0.14, 0.14, 2.4, 20);
     const strutMesh = new THREE.Mesh(strutGeo, hydraulicPistonMat);
     gearGroup.add(strutMesh);
 
-    // Torque Scissors Link
     const linkGeo = new THREE.BoxGeometry(0.07, 0.55, 0.14);
     const linkMesh = new THREE.Mesh(linkGeo, leadingEdgeMat);
     linkMesh.position.set(0, -0.35, 0.16);
     linkMesh.rotation.x = 0.5;
     gearGroup.add(linkMesh);
 
-    // Hydraulic Brake Fluid Lines
     const tubeLineGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.8, 8);
     const tubeLine = new THREE.Mesh(tubeLineGeo, leadingEdgeMat);
     tubeLine.position.set(0.08, -0.3, -0.1);
     gearGroup.add(tubeLine);
 
-    // Main Axle
     const axleGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.9, 16);
     axleGeo.rotateZ(Math.PI / 2);
     const axleMesh = new THREE.Mesh(axleGeo, hydraulicPistonMat);
@@ -804,13 +779,11 @@ export function buildAeroAircraft(): AircraftMeshGroups {
   root.add(gearMainLeft);
   root.add(gearMainRight);
 
-  // Separate Wheel Hubs & Brakes for exploded view
   const createWheelAndBrake = (isRight: boolean) => {
     const wheelGroup = new THREE.Group();
     const brakeGroup = new THREE.Group();
     const sign = isRight ? 1 : -1;
 
-    // Treaded Rubber Tires
     const wheelGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.32, 28);
     wheelGeo.rotateZ(Math.PI / 2);
     const wheelMesh1 = new THREE.Mesh(wheelGeo, tireMat);
@@ -821,7 +794,6 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     wheelGroup.add(wheelMesh1);
     wheelGroup.add(wheelMesh2);
 
-    // Forged Alloy Wheel Rims
     const rimGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.34, 24);
     rimGeo.rotateZ(Math.PI / 2);
     const rim1 = new THREE.Mesh(rimGeo, leadingEdgeMat);
@@ -831,7 +803,6 @@ export function buildAeroAircraft(): AircraftMeshGroups {
     wheelGroup.add(rim1);
     wheelGroup.add(rim2);
 
-    // Carbon-Carbon Multi-Disc Brake Assembly & Caliper
     const brakeGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.22, 24);
     brakeGeo.rotateZ(Math.PI / 2);
     const brakeMesh = new THREE.Mesh(brakeGeo, carbonBrakeMat);

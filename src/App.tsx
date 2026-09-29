@@ -171,41 +171,21 @@ export default function App() {
       >
         {/* Sticky 3D Viewport Frame */}
         <div className="sticky top-0 w-full h-screen overflow-hidden bg-neutral-950">
-          {/* Real Photographic Background Layers (Synced to Flight Phases) */}
+          {/* Real Photographic Background Layers (User-Specified Airport Sunset) */}
           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-            {/* 1. Real Sky Clouds Background (High Altitude Cruise) */}
+            {/* Primary Requested Real Airport Background: Aircraft Landing at London City Airport at sunset */}
             <div
-              className="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
+              className="absolute inset-0 bg-cover bg-center transition-all duration-700"
               style={{
-                backgroundImage: `url(${ASSET_IMAGES.skyClouds})`,
-                opacity: Math.max(0, 1 - scrollProgress * 2.2),
+                backgroundImage: `url(${ASSET_IMAGES.londonAirportSunset})`,
+                filter: 'brightness(0.9) contrast(1.05)',
+                transform: `scale(${1 + scrollProgress * 0.08})`,
               }}
             />
 
-            {/* 2. Real Airport Runway Approach Background (Descent Leading to Airport) */}
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
-              style={{
-                backgroundImage: `url(${ASSET_IMAGES.airportApproach})`,
-                opacity:
-                  scrollProgress >= 0.25 && scrollProgress <= 0.72
-                    ? Math.min(1, Math.max(0, (scrollProgress - 0.25) / 0.18)) *
-                      Math.min(1, Math.max(0, (0.72 - scrollProgress) / 0.15))
-                    : 0,
-              }}
-            />
-
-            {/* 3. Real Airport Maintenance Hangar Background (Touchdown & Disassembly) */}
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
-              style={{
-                backgroundImage: `url(${ASSET_IMAGES.hangarBay})`,
-                opacity: Math.min(1, Math.max(0, (scrollProgress - 0.6) / 0.2)),
-              }}
-            />
-
-            {/* Cinematic subtle vignette & atmospheric gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-neutral-950/60" />
+            {/* Subtle atmospheric vignette and lower darkening for runway integration */}
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/20 to-neutral-950/40" />
+            <div className="absolute inset-0 bg-radial from-transparent via-transparent to-black/60" />
           </div>
 
           {/* Three.js 3D WebGL Canvas */}
@@ -249,7 +229,7 @@ export default function App() {
                 scrollProgress < 0.35 ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              01 High Sky
+              01 Sunset Flight
             </button>
             <span className="text-neutral-700">/</span>
             <button
@@ -258,7 +238,7 @@ export default function App() {
                 scrollProgress >= 0.35 && scrollProgress < 0.68 ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              02 Airport Approach
+              02 Runway Approach
             </button>
             <span className="text-neutral-700">/</span>
             <button
@@ -267,7 +247,7 @@ export default function App() {
                 scrollProgress >= 0.68 ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              03 Hangar Disassembly
+              03 Exploded Assembly
             </button>
           </div>
         </div>

@@ -21,24 +21,24 @@ export const HeroOverlay: React.FC<HeroOverlayProps> = ({
   const isHeroVisible = heroOpacity > 0.02;
 
   // Calculate telemetry & environment according to scroll progress
-  let phaseName = 'CRUISE FLIGHT (HIGH SKY)';
+  let phaseName = 'SUNSET CRUISE (LONDON AIRSPACE)';
   let altitudeText = 'FL 340 (34,000 FT)';
   let speedText = '485 KTS GS';
-  let assemblyState = 'FLIGHT CONFIG';
-  let environmentText = 'HIGH ALTITUDE CLOUDS';
+  let assemblyState = 'CRUISE CONFIG';
+  let environmentText = 'LONDON SUNSET SKYLINE';
 
   if (scrollProgress > 0.35 && scrollProgress <= 0.68) {
-    phaseName = 'DESCENT & AIRPORT APPROACH';
-    altitudeText = '1,400 FT AGL · GLIDESLOPE';
-    speedText = '145 KTS IAS';
-    assemblyState = 'GEAR DOWN · 3 GREEN';
-    environmentText = 'AIRPORT RUNWAY LIGHTS IN SIGHT';
+    phaseName = 'RUNWAY 27 APPROACH (LONDON CITY)';
+    altitudeText = '1,200 FT AGL · ILS GLIDESLOPE';
+    speedText = '142 KTS IAS';
+    assemblyState = 'GEAR EXTENDED · 3 GREEN';
+    environmentText = 'RUNWAY LIGHTS · CANARY WHARF';
   } else if (scrollProgress > 0.68) {
-    phaseName = 'TOUCHDOWN & HANGAR DISASSEMBLY';
-    altitudeText = '0 FT · RUNWAY TARMAC';
+    phaseName = 'TOUCHDOWN & EXPLODED INSPECTION';
+    altitudeText = '0 FT · RUNWAY THRESHOLD';
     speedText = '0 KTS STATIC';
-    assemblyState = 'EXPLODED VIEW ACTIVE';
-    environmentText = 'MAINTENANCE BAY 04';
+    assemblyState = 'DISASSEMBLY ACTIVE';
+    environmentText = 'AIRPORT TARMAC';
   }
 
   return (
