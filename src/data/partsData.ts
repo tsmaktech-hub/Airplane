@@ -1,15 +1,25 @@
 import { AircraftComponentTarget, AircraftPart, AirframeFamily } from '../types/aviation';
+import londonAirportSunsetImg from '../assets/images/london_airport_sunset.jpg';
+import white3dAirplaneImg from '../assets/images/white_3d_aeroplane_1790712697975.jpg';
+import skyCloudsImg from '../assets/images/high_sky_clouds_1790711651359.jpg';
+import airportApproachImg from '../assets/images/airport_runway_approach_1790711664357.jpg';
+import hangarBayImg from '../assets/images/aerospace_hangar_bay_1790708439374.jpg';
+import tarmacRunwayImg from '../assets/images/airport_tarmac_runway_1790711675714.jpg';
+import landingGearImg from '../assets/images/landing_gear_assembly_1790708458992.jpg';
+import avionicsComputerImg from '../assets/images/avionics_flight_computer_1790708471212.jpg';
 
-// Local generated & requested visual assets
+// Public static visual assets with multi-tier fallbacks (Vite asset import, public path, and direct URL)
 export const ASSET_IMAGES = {
-  londonAirportSunset: '/src/assets/images/london_airport_sunset.jpg',
-  white3dAirplane: '/src/assets/images/white_3d_aeroplane_1790712697975.jpg',
-  skyClouds: '/src/assets/images/high_sky_clouds_1790711651359.jpg',
-  airportApproach: '/src/assets/images/airport_runway_approach_1790711664357.jpg',
-  hangarBay: '/src/assets/images/aerospace_hangar_bay_1790708439374.jpg',
-  tarmacRunway: '/src/assets/images/airport_tarmac_runway_1790711675714.jpg',
-  landingGear: '/src/assets/images/landing_gear_assembly_1790708458992.jpg',
-  avionicsComputer: '/src/assets/images/avionics_flight_computer_1790708471212.jpg',
+  londonAirportSunset: londonAirportSunsetImg || '/images/london_airport_sunset.jpg',
+  londonAirportSunsetFallback: '/images/london_airport_sunset.jpg',
+  londonAirportSunsetRemote: 'https://media02.stockfood.com/largepreviews/MjIxMzU4OTI1NQ==/71406105-Aircraft-landing-at-London-City-Airport-at-sunset-with-Canary-Wharf-and-O2-Arena-in-background-London-England.jpg',
+  white3dAirplane: white3dAirplaneImg || '/images/white_3d_aeroplane_1790712697975.jpg',
+  skyClouds: skyCloudsImg || '/images/high_sky_clouds_1790711651359.jpg',
+  airportApproach: airportApproachImg || '/images/airport_runway_approach_1790711664357.jpg',
+  hangarBay: hangarBayImg || '/images/aerospace_hangar_bay_1790708439374.jpg',
+  tarmacRunway: tarmacRunwayImg || '/images/airport_tarmac_runway_1790711675714.jpg',
+  landingGear: landingGearImg || '/images/landing_gear_assembly_1790708458992.jpg',
+  avionicsComputer: avionicsComputerImg || '/images/avionics_flight_computer_1790708471212.jpg',
 };
 
 export const AIRCRAFT_COMPONENTS: AircraftComponentTarget[] = [

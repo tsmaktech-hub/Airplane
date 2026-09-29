@@ -24,8 +24,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const aircraftRef = useRef<AircraftMeshGroups | null>(null);
 
-  // Background Panorama & Environment Meshes
-  const airportSunsetMeshRef = useRef<THREE.Mesh | null>(null);
+  // Environment Meshes
   const floorMeshRef = useRef<THREE.Mesh | null>(null);
   const runwayLightsGroupRef = useRef<THREE.Group | null>(null);
 
@@ -61,7 +60,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     // 1. Scene & Depth Fog tuned to London City Airport golden sunset
     const scene = new THREE.Scene();
     scene.background = null; // transparent so the high-res background image layers through cleanly
-    scene.fog = new THREE.FogExp2(0x18151f, 0.005);
+    scene.fog = new THREE.Fog(0x18151f, 40, 320); // Gentle depth cueing without darkening canvas background
     sceneRef.current = scene;
 
     // 2. Camera with cinematic focal length
@@ -69,30 +68,38 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     camera.position.set(12, 4, 18);
     cameraRef.current = camera;
 
-    // 3. WebGL Renderer with High Dynamic Range & Tone Mapping
+    // 3. WebGL Renderer with High Dynamic Range, Tone Mapping & Guaranteed Transparent Clear
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: 'high-performance',
       alpha: true,
+      premultipliedAlpha: false,
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 1.35;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Explicitly transparent clear color so background photographic image shines through 100%
+    renderer.setClearColor(0x000000, 0);
+    renderer.domElement.style.background = 'transparent';
+    renderer.domElement.style.position = 'absolute';
+    renderer.domElement.style.top = '0';
+    renderer.domElement.style.left = '0';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    renderer.domElement.style.pointerEvents = 'auto';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    const textureLoader = new THREE.TextureLoader();
-
     // 4. Lighting System Tuned to Golden Hour Sunset Airport Atmosphere
     // Warm golden ambient reflecting off the Thames water & airport tarmac
-    const ambient = new THREE.AmbientLight(0xffedd5, 1.1);
+    const ambient = new THREE.AmbientLight(0xffedd5, 1.25);
     scene.add(ambient);
 
     // Warm Golden Sun Key Light matching the sunset in London City Airport photo
-    const sun = new THREE.DirectionalLight(0xffa500, 3.6);
+    const sun = new THREE.DirectionalLight(0xffa500, 3.8);
     sun.position.set(28, 18, 30);
     sun.castShadow = true;
     sun.shadow.mapSize.width = 2048;
@@ -106,7 +113,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     scene.add(sun);
 
     // Twilight Blue Sky Rim Light from opposite horizon
-    const sunsetRim = new THREE.DirectionalLight(0x38bdf8, 2.2);
+    const sunsetRim = new THREE.DirectionalLight(0x38bdf8, 2.4);
     sunsetRim.position.set(-25, 6, -30);
     scene.add(sunsetRim);
 
@@ -122,26 +129,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     lightsRef.current = { sun, ambient, sunsetRim, tarmacLight1, tarmacLight2 };
 
     // ==============================================================
-    // 5. EXACT REQUESTED REAL AIRPORT SUNSET BACKGROUND
-    // ==============================================================
-    const sunsetTex = textureLoader.load(ASSET_IMAGES.londonAirportSunset);
-    sunsetTex.wrapS = THREE.ClampToEdgeWrapping;
-    sunsetTex.wrapT = THREE.ClampToEdgeWrapping;
-    
-    // Curved panoramic cylindrical cyclorama backdrop
-    const sunsetGeo = new THREE.CylinderGeometry(200, 200, 160, 64, 1, true, -Math.PI * 0.75, Math.PI * 1.5);
-    const sunsetMat = new THREE.MeshBasicMaterial({
-      map: sunsetTex,
-      side: THREE.BackSide,
-      transparent: true,
-      opacity: 0.95,
-      depthWrite: false,
-    });
-    const airportSunsetMesh = new THREE.Mesh(sunsetGeo, sunsetMat);
-    airportSunsetMesh.position.set(0, 24, -30);
-    scene.add(airportSunsetMesh);
-    airportSunsetMeshRef.current = airportSunsetMesh;
-
+    // 5. REAL AIRPORT TARMAC & RUNWAY SURFACE (Appears on Approach)
     // ==============================================================
     // 6. REAL AIRPORT TARMAC & RUNWAY SURFACE
     // ==============================================================
@@ -365,17 +353,15 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     smoothExploded.current = explodedFactor;
 
     // Background & Tarmac Transitions
-    if (airportSunsetMeshRef.current && floorMeshRef.current) {
+    if (floorMeshRef.current) {
       // In flight, background is at full beauty, tarmac fades in as we descend towards touchdown
       if (p < 0.35) {
         (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 0;
         if (runwayLightsGroupRef.current) runwayLightsGroupRef.current.visible = false;
-        airportSunsetMeshRef.current.position.y = 24;
       } else {
         const landingProgress = Math.min(1, (p - 0.35) / 0.3);
         (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = landingProgress * 0.95;
         if (runwayLightsGroupRef.current) runwayLightsGroupRef.current.visible = true;
-        airportSunsetMeshRef.current.position.y = 24 - landingProgress * 8;
       }
     }
 

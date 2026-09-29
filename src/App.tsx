@@ -23,6 +23,8 @@ export default function App() {
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   const [screenPositions, setScreenPositions] = useState<Record<string, { x: number; y: number; visible: boolean }>>({});
   const [isOrbitMode, setIsOrbitMode] = useState(false);
+  const [bgImageSrc, setBgImageSrc] = useState(ASSET_IMAGES.londonAirportSunset);
+  const [bgLoaded, setBgLoaded] = useState(false);
 
   // E-Commerce State
   const [catalogComponentFilter, setCatalogComponentFilter] = useState<string | null>(null);
@@ -171,21 +173,40 @@ export default function App() {
       >
         {/* Sticky 3D Viewport Frame */}
         <div className="sticky top-0 w-full h-screen overflow-hidden bg-neutral-950">
-          {/* Real Photographic Background Layers (User-Specified Airport Sunset) */}
-          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          {/* Real Photographic Background Layers (User-Specified London City Airport Sunset) */}
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden bg-neutral-950">
             {/* Primary Requested Real Airport Background: Aircraft Landing at London City Airport at sunset */}
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+            <img
+              src={bgImageSrc}
+              alt="Real Aircraft Landing at London City Airport at sunset with Canary Wharf and O2 Arena in background"
+              className={`absolute inset-0 w-full h-full object-cover object-center transition-all duration-700 ${
+                bgLoaded ? 'opacity-100' : 'opacity-95'
+              }`}
               style={{
-                backgroundImage: `url(${ASSET_IMAGES.londonAirportSunset})`,
-                filter: 'brightness(0.9) contrast(1.05)',
+                filter: 'brightness(1.05) contrast(1.04)',
                 transform: `scale(${1 + scrollProgress * 0.08})`,
               }}
+              onError={() => {
+                // Multi-tier fallback if path or environment differs
+                if (bgImageSrc !== ASSET_IMAGES.londonAirportSunsetFallback) {
+                  setBgImageSrc(ASSET_IMAGES.londonAirportSunsetFallback);
+                } else if (bgImageSrc !== ASSET_IMAGES.londonAirportSunsetRemote) {
+                  setBgImageSrc(ASSET_IMAGES.londonAirportSunsetRemote);
+                }
+              }}
+              onLoad={() => setBgLoaded(true)}
+              loading="eager"
+              decoding="sync"
             />
 
-            {/* Subtle atmospheric vignette and lower darkening for runway integration */}
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/20 to-neutral-950/40" />
-            <div className="absolute inset-0 bg-radial from-transparent via-transparent to-black/60" />
+            {/* Subtle atmospheric vignette and smooth fade into runway on descent */}
+            <div
+              className="absolute inset-0 transition-opacity duration-700 pointer-events-none"
+              style={{
+                background: `linear-gradient(to top, rgba(10, 10, 10, ${Math.min(0.9, scrollProgress * 1.2)}), transparent 45%, rgba(10, 10, 10, 0.35))`,
+              }}
+            />
+            <div className="absolute inset-0 bg-radial from-transparent via-transparent to-black/25 pointer-events-none" />
           </div>
 
           {/* Three.js 3D WebGL Canvas */}
