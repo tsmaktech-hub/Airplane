@@ -2,7 +2,10 @@ import { AircraftComponentTarget, AircraftPart, AirframeFamily } from '../types/
 
 // Local generated visual assets
 export const ASSET_IMAGES = {
+  skyClouds: '/src/assets/images/high_sky_clouds_1790711651359.jpg',
+  airportApproach: '/src/assets/images/airport_runway_approach_1790711664357.jpg',
   hangarBay: '/src/assets/images/aerospace_hangar_bay_1790708439374.jpg',
+  tarmacRunway: '/src/assets/images/airport_tarmac_runway_1790711675714.jpg',
   landingGear: '/src/assets/images/landing_gear_assembly_1790708458992.jpg',
   avionicsComputer: '/src/assets/images/avionics_flight_computer_1790708471212.jpg',
 };

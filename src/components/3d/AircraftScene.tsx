@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
-import { AIRCRAFT_COMPONENTS } from '../../data/partsData';
+import { AIRCRAFT_COMPONENTS, ASSET_IMAGES } from '../../data/partsData';
 import { buildAeroAircraft, AircraftMeshGroups } from './AircraftMeshBuilder';
 
 interface AircraftSceneProps {
@@ -23,6 +23,14 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const aircraftRef = useRef<AircraftMeshGroups | null>(null);
+
+  // Background Panorama & Environment Meshes
+  const skyMeshRef = useRef<THREE.Mesh | null>(null);
+  const approachMeshRef = useRef<THREE.Mesh | null>(null);
+  const hangarMeshRef = useRef<THREE.Mesh | null>(null);
+  const floorMeshRef = useRef<THREE.Mesh | null>(null);
+  const runwayLightsGroupRef = useRef<THREE.Group | null>(null);
+
   const lightsRef = useRef<{
     sun: THREE.DirectionalLight;
     ambient: THREE.AmbientLight;
@@ -30,7 +38,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     hangarSpot2: THREE.SpotLight;
     rimLight: THREE.DirectionalLight;
   } | null>(null);
-  const hangarFloorRef = useRef<THREE.Mesh | null>(null);
+
   const particlesRef = useRef<THREE.Points | null>(null);
 
   // Smooth lerp state
@@ -52,106 +60,223 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
-    // 1. Scene & Fog
+    // 1. Scene & Depth Fog
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a101d);
-    scene.fog = new THREE.FogExp2(0x0a101d, 0.015);
+    scene.fog = new THREE.FogExp2(0x0a101d, 0.008);
     sceneRef.current = scene;
 
     // 2. Camera
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1500);
     camera.position.set(12, 4, 18);
     cameraRef.current = camera;
 
-    // 3. Renderer
+    // 3. Renderer with High Dynamic Range & Color Precision
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: 'high-performance',
-      alpha: false,
+      alpha: true,
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.25;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Lights
-    const ambient = new THREE.AmbientLight(0x7dd3fc, 0.8);
+    const textureLoader = new THREE.TextureLoader();
+
+    // 4. Lighting System
+    const ambient = new THREE.AmbientLight(0xcfd8dc, 0.9);
     scene.add(ambient);
 
-    const sun = new THREE.DirectionalLight(0xfffbeb, 2.8);
-    sun.position.set(25, 30, 20);
+    // Warm Golden Sunlight in sky / twilight rim
+    const sun = new THREE.DirectionalLight(0xffedd5, 3.2);
+    sun.position.set(30, 35, 25);
     sun.castShadow = true;
     sun.shadow.mapSize.width = 2048;
     sun.shadow.mapSize.height = 2048;
     sun.shadow.camera.near = 0.5;
-    sun.shadow.camera.far = 100;
-    sun.shadow.camera.left = -20;
-    sun.shadow.camera.right = 20;
-    sun.shadow.camera.top = 20;
-    sun.shadow.camera.bottom = -20;
+    sun.shadow.camera.far = 120;
+    sun.shadow.camera.left = -25;
+    sun.shadow.camera.right = 25;
+    sun.shadow.camera.top = 25;
+    sun.shadow.camera.bottom = -25;
     scene.add(sun);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.2);
-    rimLight.position.set(-20, -5, -25);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 2.5);
+    rimLight.position.set(-25, -2, -30);
     scene.add(rimLight);
 
-    // Hangar Overhead Spotlights (intensify in hangar)
-    const hangarSpot1 = new THREE.SpotLight(0xffffff, 0, 40, Math.PI / 4, 0.4, 1);
-    hangarSpot1.position.set(0, 18, 5);
+    // Hangar Overhead Industrial Spotlights
+    const hangarSpot1 = new THREE.SpotLight(0xffffff, 0, 50, Math.PI / 3.5, 0.35, 1);
+    hangarSpot1.position.set(0, 22, 6);
     scene.add(hangarSpot1);
 
-    const hangarSpot2 = new THREE.SpotLight(0x38bdf8, 0, 40, Math.PI / 4, 0.4, 1);
-    hangarSpot2.position.set(0, 18, -5);
+    const hangarSpot2 = new THREE.SpotLight(0x38bdf8, 0, 50, Math.PI / 3.5, 0.35, 1);
+    hangarSpot2.position.set(0, 22, -6);
     scene.add(hangarSpot2);
 
     lightsRef.current = { sun, ambient, hangarSpot1, hangarSpot2, rimLight };
 
-    // 5. Hangar Floor & Runway Surface
-    const floorGeo = new THREE.PlaneGeometry(160, 160, 32, 32);
+    // ==============================================================
+    // 5. REAL IMAGE BACKGROUND PANORAMAS (Sky -> Airport Approach -> Hangar)
+    // ==============================================================
+
+    // A. Real High-Altitude Sky Background (Cruise Flight Phase)
+    const skyTex = textureLoader.load(ASSET_IMAGES.skyClouds);
+    skyTex.wrapS = THREE.ClampToEdgeWrapping;
+    skyTex.wrapT = THREE.ClampToEdgeWrapping;
+    const skyGeo = new THREE.SphereGeometry(220, 48, 32);
+    const skyMat = new THREE.MeshBasicMaterial({
+      map: skyTex,
+      side: THREE.BackSide,
+      transparent: true,
+      opacity: 1.0,
+      depthWrite: false,
+    });
+    const skyMesh = new THREE.Mesh(skyGeo, skyMat);
+    skyMesh.rotation.y = -Math.PI / 2.2;
+    scene.add(skyMesh);
+    skyMeshRef.current = skyMesh;
+
+    // B. Real Airport Runway Approach Background (Descent Phase leading to Airport)
+    const approachTex = textureLoader.load(ASSET_IMAGES.airportApproach);
+    const approachGeo = new THREE.CylinderGeometry(180, 180, 140, 48, 1, true, -Math.PI * 0.7, Math.PI * 1.4);
+    const approachMat = new THREE.MeshBasicMaterial({
+      map: approachTex,
+      side: THREE.BackSide,
+      transparent: true,
+      opacity: 0.0,
+      depthWrite: false,
+    });
+    const approachMesh = new THREE.Mesh(approachGeo, approachMat);
+    approachMesh.position.set(0, 20, -25);
+    scene.add(approachMesh);
+    approachMeshRef.current = approachMesh;
+
+    // C. Real Airport Maintenance Hangar Background (Docked & Disassembly Phase)
+    const hangarTex = textureLoader.load(ASSET_IMAGES.hangarBay);
+    const hangarGeo = new THREE.CylinderGeometry(110, 110, 90, 48, 1, true);
+    const hangarMat = new THREE.MeshStandardMaterial({
+      map: hangarTex,
+      side: THREE.BackSide,
+      transparent: true,
+      opacity: 0.0,
+      roughness: 0.4,
+      metalness: 0.6,
+      depthWrite: false,
+    });
+    const hangarMesh = new THREE.Mesh(hangarGeo, hangarMat);
+    hangarMesh.position.set(0, 15, 0);
+    scene.add(hangarMesh);
+    hangarMeshRef.current = hangarMesh;
+
+    // ==============================================================
+    // 6. REAL AIRPORT TARMAC & RUNWAY SURFACE
+    // ==============================================================
+    const tarmacTex = textureLoader.load(ASSET_IMAGES.tarmacRunway);
+    tarmacTex.wrapS = THREE.RepeatWrapping;
+    tarmacTex.wrapT = THREE.RepeatWrapping;
+    tarmacTex.repeat.set(8, 8);
+
+    const floorGeo = new THREE.PlaneGeometry(280, 280, 32, 32);
     floorGeo.rotateX(-Math.PI / 2);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x0a0c10,
-      metalness: 0.8,
-      roughness: 0.25,
-      envMapIntensity: 0.8,
+      map: tarmacTex,
+      metalness: 0.7,
+      roughness: 0.35,
+      transparent: true,
+      opacity: 0.0,
     });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-    floorMesh.position.y = -3.2;
+    floorMesh.position.y = -3.3;
     floorMesh.receiveShadow = true;
     scene.add(floorMesh);
-    hangarFloorRef.current = floorMesh;
+    floorMeshRef.current = floorMesh;
 
-    // Floor Markings / Runway Lines
-    const lineMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.35 });
-    const centerline = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 80).rotateX(-Math.PI / 2), lineMat);
-    centerline.position.set(0, -3.19, 0);
-    scene.add(centerline);
+    // 7. REAL 3D AIRPORT RUNWAY APPROACH & THRESHOLD LIGHTS
+    const runwayLightsGroup = new THREE.Group();
+    runwayLightsGroup.position.set(0, -3.28, 0);
 
-    // 6. Atmospheric Cloud / Vapor Particles
-    const particleCount = 180;
+    // Runway Centerline White Inset Lights
+    const centerlineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const centerlineGeo = new THREE.BoxGeometry(0.2, 0.05, 1.2);
+    for (let z = -120; z < 100; z += 6) {
+      const lightMesh = new THREE.Mesh(centerlineGeo, centerlineMat);
+      lightMesh.position.set(0, 0, z);
+      runwayLightsGroup.add(lightMesh);
+    }
+
+    // Runway Edge Lights (Yellow/White) & Green Threshold Barrette
+    const edgeLightGeo = new THREE.SphereGeometry(0.12, 12, 12);
+    const edgeYellowMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    const edgeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+    const greenThresholdMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+    const blueTaxiMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+    // Green Threshold Bar (The runway start)
+    for (let x = -14; x <= 14; x += 1.5) {
+      const thLight = new THREE.Mesh(edgeLightGeo, greenThresholdMat);
+      thLight.position.set(x, 0.08, -35);
+      runwayLightsGroup.add(thLight);
+    }
+
+    // Approach Light System (ALS) crossbars leading to runway
+    for (let z = -90; z < -35; z += 12) {
+      for (let x = -8; x <= 8; x += 2) {
+        const als = new THREE.Mesh(edgeLightGeo, edgeWhiteMat);
+        als.position.set(x, 0.08, z);
+        runwayLightsGroup.add(als);
+      }
+    }
+
+    // Runway Edges
+    for (let z = -35; z < 90; z += 8) {
+      const isYellowZone = z > 50;
+      const mat = isYellowZone ? edgeYellowMat : edgeWhiteMat;
+
+      const leftEdge = new THREE.Mesh(edgeLightGeo, mat);
+      leftEdge.position.set(-14, 0.08, z);
+      runwayLightsGroup.add(leftEdge);
+
+      const rightEdge = new THREE.Mesh(edgeLightGeo, mat);
+      rightEdge.position.set(14, 0.08, z);
+      runwayLightsGroup.add(rightEdge);
+
+      // Blue taxiway border lights
+      const taxiLeft = new THREE.Mesh(edgeLightGeo, blueTaxiMat);
+      taxiLeft.position.set(-20, 0.06, z);
+      runwayLightsGroup.add(taxiLeft);
+    }
+
+    scene.add(runwayLightsGroup);
+    runwayLightsGroup.visible = false;
+    runwayLightsGroupRef.current = runwayLightsGroup;
+
+    // 8. Atmospheric Cloud & Vapor Particles
+    const particleCount = 200;
     const particleGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 80;
-      positions[i + 1] = (Math.random() - 0.5) * 40;
-      positions[i + 2] = (Math.random() - 0.5) * 120;
+      positions[i] = (Math.random() - 0.5) * 90;
+      positions[i + 1] = (Math.random() - 0.5) * 45;
+      positions[i + 2] = (Math.random() - 0.5) * 140;
     }
     particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const particleMat = new THREE.PointsMaterial({
-      color: 0xa5f3fc,
-      size: 0.35,
+      color: 0xe0f2fe,
+      size: 0.38,
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.3,
     });
     const particles = new THREE.Points(particleGeo, particleMat);
     scene.add(particles);
     particlesRef.current = particles;
 
-    // 7. Build Modular 3D Aircraft
+    // 9. Build Genuine Commercial Jetliner Model
     const aircraft = buildAeroAircraft();
     scene.add(aircraft.root);
     aircraftRef.current = aircraft;
@@ -169,7 +294,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
-    // Animation Loop
+    // Main 60FPS Animation Loop
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -178,26 +303,30 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // Spin Engine Turbofan Blades
+      // Spin CFM LEAP Turbofan Blades AND Iconic White Spiral Spinner
       if (aircraftRef.current) {
         aircraftRef.current.fanBlades.forEach((fan) => {
-          fan.rotation.z += 12 * delta;
+          fan.rotation.z += 14 * delta;
         });
 
-        // Flash Navigation Strobe Lights
-        const strobeState = Math.sin(time * 6) > 0.85;
+        aircraftRef.current.spinners.forEach((spinner) => {
+          spinner.rotation.y += 14 * delta;
+        });
+
+        // Anti-Collision Strobe Flash (Wingtip white, belly red beacon)
+        const strobeFlash = Math.sin(time * 7) > 0.82;
         aircraftRef.current.navLights.forEach((light) => {
-          light.intensity = strobeState ? 4 : 1.2;
+          light.intensity = strobeFlash ? 4.5 : 1.2;
         });
       }
 
-      // Stream Cloud / Vapor Particles
+      // Stream High-Altitude Cloud/Vapor Particles
       if (particlesRef.current) {
         const posAttr = particlesRef.current.geometry.attributes.position as THREE.BufferAttribute;
         const array = posAttr.array as Float32Array;
         for (let i = 2; i < array.length; i += 3) {
-          array[i] += 40 * delta;
-          if (array[i] > 60) array[i] = -60;
+          array[i] += 48 * delta;
+          if (array[i] > 70) array[i] = -70;
         }
         posAttr.needsUpdate = true;
       }
@@ -211,7 +340,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
         cameraRef.current.lookAt(currentCamLook.current);
       }
 
-      // Calculate 2D Screen Positions for Interactive Callout Lines
+      // Screen Projections for 2D Callout Lines
       if (cameraRef.current && containerRef.current) {
         const w = containerRef.current.clientWidth;
         const h = containerRef.current.clientHeight;
@@ -222,7 +351,6 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
           const explodedOffset = new THREE.Vector3(...comp.explodedOffset).multiplyScalar(smoothExploded.current);
           worldPos.add(explodedOffset);
 
-          // Apply root aircraft world transform
           if (aircraftRef.current) {
             worldPos.applyEuler(aircraftRef.current.root.rotation);
             worldPos.add(aircraftRef.current.root.position);
@@ -258,7 +386,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     };
   }, []);
 
-  // Update Aircraft State Based on Scroll Progress & Selected Component
+  // Update Aircraft State & Real Image Backgrounds Based on Scroll Progress
   useEffect(() => {
     if (!isSceneReady || !aircraftRef.current || !lightsRef.current || !sceneRef.current) return;
 
@@ -267,93 +395,113 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     const scene = sceneRef.current;
     const p = Math.max(0, Math.min(1, scrollProgress));
 
-    // Calculate Exploded View Factor (begins after landing in hangar: p > 0.55)
+    // Exploded View Factor (Active in hangar: p > 0.58)
     let explodedFactor = 0;
-    if (p > 0.55) {
-      explodedFactor = Math.min(1, (p - 0.55) / 0.35);
+    if (p > 0.58) {
+      explodedFactor = Math.min(1, (p - 0.58) / 0.32);
     }
     smoothExploded.current = explodedFactor;
 
-    // 1. Altitude Descent & Roll Motion
-    if (p < 0.4) {
-      // Phase 1: High Flight
-      const flightProgress = p / 0.4;
-      aircraft.root.position.y = 3.5 - flightProgress * 1.5;
-      aircraft.root.position.z = flightProgress * -2;
-      aircraft.root.rotation.x = -0.05 + Math.sin(flightProgress * Math.PI) * 0.08;
-      aircraft.root.rotation.z = Math.sin(flightProgress * Math.PI * 1.5) * 0.12;
-      aircraft.root.rotation.y = 0.2 - flightProgress * 0.2;
+    // REAL IMAGE BACKGROUND TRANSITIONS:
+    // Phase 1 (0 to 0.35): Real high altitude sky & clouds
+    // Phase 2 (0.35 to 0.68): Real aerial descent approaching international airport runway
+    // Phase 3 (0.68 to 1.0): Real airport tarmac & maintenance hangar
+    if (skyMeshRef.current && approachMeshRef.current && hangarMeshRef.current && floorMeshRef.current) {
+      if (p < 0.35) {
+        // High Sky
+        const skyOp = 1.0;
+        const appOp = Math.max(0, (p - 0.2) / 0.15);
+        (skyMeshRef.current.material as THREE.MeshBasicMaterial).opacity = 1.0 - appOp * 0.5;
+        (approachMeshRef.current.material as THREE.MeshBasicMaterial).opacity = appOp;
+        (hangarMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 0;
+        (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 0;
+        if (runwayLightsGroupRef.current) runwayLightsGroupRef.current.visible = false;
+      } else if (p < 0.68) {
+        // Approach leading directly to airport runway
+        const descentProgress = (p - 0.35) / 0.33;
+        (skyMeshRef.current.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 1.0 - descentProgress * 1.5);
+        (approachMeshRef.current.material as THREE.MeshBasicMaterial).opacity = 1.0 - descentProgress * 0.4;
+        (hangarMeshRef.current.material as THREE.MeshStandardMaterial).opacity = Math.max(0, (descentProgress - 0.5) * 2);
+        (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = descentProgress;
 
-      // Sky Atmosphere
-      scene.background = new THREE.Color(0x0c1626);
-      if (scene.fog) {
-        scene.fog.color.setHex(0x0c1626);
-        (scene.fog as THREE.FogExp2).density = 0.012;
+        if (runwayLightsGroupRef.current) {
+          runwayLightsGroupRef.current.visible = true;
+        }
+      } else {
+        // Landed on Tarmac in Hangar Bay
+        (skyMeshRef.current.material as THREE.MeshBasicMaterial).opacity = 0;
+        (approachMeshRef.current.material as THREE.MeshBasicMaterial).opacity = 0;
+        (hangarMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 1.0;
+        (floorMeshRef.current.material as THREE.MeshStandardMaterial).opacity = 1.0;
+        if (runwayLightsGroupRef.current) runwayLightsGroupRef.current.visible = true;
       }
-      lights.sun.intensity = 2.8;
-      lights.hangarSpot1.intensity = 0;
-      lights.hangarSpot2.intensity = 0;
-      if (hangarFloorRef.current) hangarFloorRef.current.visible = false;
-    } else if (p < 0.7) {
-      // Phase 2: Approach & Landing into Hangar
-      const approachProgress = (p - 0.4) / 0.3;
-      aircraft.root.position.y = 2.0 - approachProgress * 2.0; // touches down at y = 0
-      aircraft.root.position.z = -2 + approachProgress * 2;
-      aircraft.root.rotation.x = 0.03 * (1 - approachProgress);
-      aircraft.root.rotation.z = 0.05 * (1 - approachProgress);
-      aircraft.root.rotation.y = approachProgress * 0.1;
-
-      // Transition to Hangar Environment
-      const bgColor = new THREE.Color(0x0c1626).lerp(new THREE.Color(0x07080b), approachProgress);
-      scene.background = bgColor;
-      if (scene.fog) {
-        scene.fog.color.copy(bgColor);
-        (scene.fog as THREE.FogExp2).density = 0.012 + approachProgress * 0.01;
-      }
-      lights.sun.intensity = 2.8 - approachProgress * 1.8;
-      lights.hangarSpot1.intensity = approachProgress * 3.5;
-      lights.hangarSpot2.intensity = approachProgress * 2.8;
-      if (hangarFloorRef.current) {
-        hangarFloorRef.current.visible = true;
-        (hangarFloorRef.current.material as THREE.MeshStandardMaterial).opacity = approachProgress;
-      }
-    } else {
-      // Phase 3: Hangar Docked & Exploded Inspection View
-      aircraft.root.position.set(0, 0, 0);
-      aircraft.root.rotation.set(0.04, 0.15 + (isOrbitMode ? orbitRotation.current.y : 0), isOrbitMode ? orbitRotation.current.x : 0);
-
-      scene.background = new THREE.Color(0x07080a);
-      if (scene.fog) {
-        scene.fog.color.setHex(0x07080a);
-        (scene.fog as THREE.FogExp2).density = 0.02;
-      }
-      lights.sun.intensity = 1.0;
-      lights.hangarSpot1.intensity = 4.2;
-      lights.hangarSpot2.intensity = 3.8;
-      if (hangarFloorRef.current) hangarFloorRef.current.visible = true;
     }
 
-    // 2. Explode Components along vectors
-    const ef = smoothExploded.current;
-    aircraft.radomeAvionics.position.set(0, 1.8 * ef, 4.5 * ef);
-    aircraft.engineLeft.position.set(-4.2 - 2.5 * ef, -0.9 - 2.0 * ef, 1.2 + 3.0 * ef);
-    aircraft.engineRight.position.set(4.2 + 2.5 * ef, -0.9 - 2.0 * ef, 1.2 + 3.0 * ef);
-    aircraft.wingLeft.position.set(-4.5 * ef, -0.2 + 1.2 * ef, 1.0 - 1.5 * ef);
-    aircraft.wingRight.position.set(4.5 * ef, -0.2 + 1.2 * ef, 1.0 - 1.5 * ef);
-    aircraft.flapsLeft.position.set(-3.6 - 3.0 * ef, -0.3 - 1.2 * ef, -2.2 - 3.5 * ef);
-    aircraft.flapsRight.position.set(3.6 + 3.0 * ef, -0.3 - 1.2 * ef, -2.2 - 3.5 * ef);
-    aircraft.aileronLeft.position.set(-8.2 - 4.8 * ef, 0.1 + 0.8 * ef, -4.2 - 3.8 * ef);
-    aircraft.aileronRight.position.set(8.2 + 4.8 * ef, 0.1 + 0.8 * ef, -4.2 - 3.8 * ef);
-    aircraft.gearMainLeft.position.set(-2.4 - 0.5 * ef, -1.5 - 3.2 * ef, -0.4 + 0.5 * ef);
-    aircraft.gearMainRight.position.set(2.4 + 0.5 * ef, -1.5 - 3.2 * ef, -0.4 + 0.5 * ef);
-    aircraft.wheelLeft.position.set(-2.4 - 1.8 * ef, -2.6 - 4.0 * ef, -0.4 + 2.2 * ef);
-    aircraft.wheelRight.position.set(2.4 + 1.8 * ef, -2.6 - 4.0 * ef, -0.4 + 2.2 * ef);
-    aircraft.brakeLeft.position.set(-2.4 - 1.2 * ef, -2.6 - 3.8 * ef, -0.4 + 1.5 * ef);
-    aircraft.brakeRight.position.set(2.4 + 1.2 * ef, -2.6 - 3.8 * ef, -0.4 + 1.5 * ef);
-    aircraft.hydraulics.position.set(0.8 - 1.2 * ef, 0.2 + 2.2 * ef, -1.8 - 2.5 * ef);
-    aircraft.fuelSystem.position.set(0, -0.6 - 3.0 * ef, 0.2 - 1.5 * ef);
+    // 1. Aircraft Trajectory, Pitch, Roll & Landing
+    if (p < 0.38) {
+      // High Flight
+      const sub = p / 0.38;
+      aircraft.root.position.y = 3.8 - sub * 1.6;
+      aircraft.root.position.z = sub * -2.5;
+      aircraft.root.rotation.x = -0.05 + Math.sin(sub * Math.PI) * 0.08;
+      aircraft.root.rotation.z = Math.sin(sub * Math.PI * 1.5) * 0.12;
+      aircraft.root.rotation.y = 0.2 - sub * 0.2;
 
-    // 3. Camera Position Logic (Check if a component is selected vs default scroll trajectory)
+      lights.sun.intensity = 3.2;
+      lights.hangarSpot1.intensity = 0;
+      lights.hangarSpot2.intensity = 0;
+      aircraft.landingLights.forEach((l) => (l.intensity = 0));
+    } else if (p < 0.68) {
+      // Final Approach & Touchdown on Runway
+      const sub = (p - 0.38) / 0.3;
+      aircraft.root.position.y = 2.2 - sub * 2.2; // touches down smoothly at y = 0
+      aircraft.root.position.z = -2.5 + sub * 2.5;
+      aircraft.root.rotation.x = 0.04 * (1 - sub); // flare on touchdown
+      aircraft.root.rotation.z = 0.05 * (1 - sub);
+      aircraft.root.rotation.y = sub * 0.08;
+
+      lights.sun.intensity = 3.2 - sub * 1.8;
+      lights.hangarSpot1.intensity = sub * 3.8;
+      lights.hangarSpot2.intensity = sub * 3.2;
+
+      // Turn on aircraft landing lights to illuminate the runway
+      aircraft.landingLights.forEach((l) => (l.intensity = sub * 4.0));
+    } else {
+      // Docked on Tarmac / Hangar Exploded Inspection
+      aircraft.root.position.set(0, 0, 0);
+      aircraft.root.rotation.set(
+        0.03,
+        0.12 + (isOrbitMode ? orbitRotation.current.y : 0),
+        isOrbitMode ? orbitRotation.current.x : 0
+      );
+
+      lights.sun.intensity = 1.2;
+      lights.hangarSpot1.intensity = 4.8;
+      lights.hangarSpot2.intensity = 4.2;
+      aircraft.landingLights.forEach((l) => (l.intensity = 1.5));
+    }
+
+    // 2. Component Exploded Displacement
+    const ef = smoothExploded.current;
+    aircraft.radomeAvionics.position.set(0, 1.8 * ef, 4.8 * ef);
+    aircraft.engineLeft.position.set(-4.4 - 2.8 * ef, -0.95 - 2.2 * ef, 1.3 + 3.2 * ef);
+    aircraft.engineRight.position.set(4.4 + 2.8 * ef, -0.95 - 2.2 * ef, 1.3 + 3.2 * ef);
+    aircraft.wingLeft.position.set(-4.8 * ef, -0.2 + 1.2 * ef, 1.2 - 1.6 * ef);
+    aircraft.wingRight.position.set(4.8 * ef, -0.2 + 1.2 * ef, 1.2 - 1.6 * ef);
+    aircraft.flapsLeft.position.set(-3.8 - 3.2 * ef, -0.32 - 1.3 * ef, -2.4 - 3.8 * ef);
+    aircraft.flapsRight.position.set(3.8 + 3.2 * ef, -0.32 - 1.3 * ef, -2.4 - 3.8 * ef);
+    aircraft.aileronLeft.position.set(-8.8 - 5.0 * ef, 0.12 + 0.9 * ef, -4.6 - 4.0 * ef);
+    aircraft.aileronRight.position.set(8.8 + 5.0 * ef, 0.12 + 0.9 * ef, -4.6 - 4.0 * ef);
+    aircraft.gearMainLeft.position.set(-2.5 - 0.6 * ef, -1.55 - 3.4 * ef, -0.4 + 0.6 * ef);
+    aircraft.gearMainRight.position.set(2.5 + 0.6 * ef, -1.55 - 3.4 * ef, -0.4 + 0.6 * ef);
+    aircraft.wheelLeft.position.set(-2.5 - 2.0 * ef, -2.75 - 4.2 * ef, -0.4 + 2.4 * ef);
+    aircraft.wheelRight.position.set(2.5 + 2.0 * ef, -2.75 - 4.2 * ef, -0.4 + 2.4 * ef);
+    aircraft.brakeLeft.position.set(-2.5 - 1.4 * ef, -2.75 - 4.0 * ef, -0.4 + 1.6 * ef);
+    aircraft.brakeRight.position.set(2.5 + 1.4 * ef, -2.75 - 4.0 * ef, -0.4 + 1.6 * ef);
+    aircraft.hydraulics.position.set(0.85 - 1.3 * ef, 0.22 + 2.4 * ef, -1.8 - 2.6 * ef);
+    aircraft.fuelSystem.position.set(0, -0.65 - 3.2 * ef, 0.2 - 1.6 * ef);
+
+    // 3. Camera Framing Logic
     if (selectedComponentId) {
       const selected = AIRCRAFT_COMPONENTS.find((c) => c.id === selectedComponentId);
       if (selected) {
@@ -363,26 +511,25 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
       }
     }
 
-    // Default Scroll Camera Trajectory
     if (p < 0.35) {
-      // High altitude wide cinematic shot
+      // High Flight Chase View
       const sub = p / 0.35;
-      targetCamPos.current.set(14 - sub * 4, 5 - sub * 1.5, 24 - sub * 6);
+      targetCamPos.current.set(14 - sub * 4, 5 - sub * 1.5, 25 - sub * 6);
       targetCamLook.current.set(0, 2 - sub * 1, 0);
-    } else if (p < 0.7) {
-      // Descending alongside aircraft into hangar
-      const sub = (p - 0.35) / 0.35;
-      targetCamPos.current.set(10 - sub * 2, 3.5 - sub * 1.5, 18 - sub * 5);
-      targetCamLook.current.set(0, 0.5 - sub * 0.5, 0);
+    } else if (p < 0.68) {
+      // Runway Approach & Descent along the approach corridor
+      const sub = (p - 0.35) / 0.33;
+      targetCamPos.current.set(10 - sub * 2.5, 3.5 - sub * 1.5, 19 - sub * 5.5);
+      targetCamLook.current.set(0, 0.6 - sub * 0.6, 0);
     } else {
-      // Disassembly exploded close inspection view
-      const sub = (p - 0.7) / 0.3;
-      targetCamPos.current.set(8 - sub * 1.5, 2.8 + sub * 0.5, 13 - sub * 2.5);
-      targetCamLook.current.set(1.5 * sub, 0, 0);
+      // Disassembly Micro Inspection
+      const sub = (p - 0.68) / 0.32;
+      targetCamPos.current.set(7.5 - sub * 1.2, 2.6 + sub * 0.6, 13.5 - sub * 2.5);
+      targetCamLook.current.set(1.4 * sub, 0, 0);
     }
   }, [scrollProgress, selectedComponentId, isSceneReady, isOrbitMode]);
 
-  // Raycasting Click on 3D Aircraft
+  // Raycasting Click Interaction
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true;
     prevMousePos.current = { x: e.clientX, y: e.clientY };
@@ -401,7 +548,6 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
     const moved = Math.hypot(e.clientX - prevMousePos.current.x, e.clientY - prevMousePos.current.y);
     isDragging.current = false;
 
-    // If small click without dragging, perform raycast
     if (moved < 5 && containerRef.current && cameraRef.current && sceneRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const mouse = new THREE.Vector2(
@@ -414,7 +560,6 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
       const intersects = raycaster.intersectObjects(sceneRef.current.children, true);
 
       if (intersects.length > 0) {
-        // Find which component group was clicked
         let obj: THREE.Object3D | null = intersects[0].object;
         let matchedCompId: string | null = null;
 
@@ -448,7 +593,7 @@ export const AircraftScene: React.FC<AircraftSceneProps> = ({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      className={`w-full h-full relative cursor-grab active:cursor-grabbing select-none overflow-hidden touch-none`}
+      className="w-full h-full relative cursor-grab active:cursor-grabbing select-none overflow-hidden touch-none"
     />
   );
 };

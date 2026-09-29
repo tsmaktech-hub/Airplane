@@ -11,8 +11,8 @@ import { CartDrawer } from './components/cart/CartDrawer';
 import { SearchModal } from './components/search/SearchModal';
 import { QuoteModal } from './components/rfq/QuoteModal';
 import { AircraftPart, CartItem, AirframeFamily } from './types/aviation';
-import { PARTS_CATALOG, AIRCRAFT_COMPONENTS } from './data/partsData';
-import { Sliders, Eye, PlaneTakeoff, ShieldCheck, ChevronDown } from 'lucide-react';
+import { PARTS_CATALOG, AIRCRAFT_COMPONENTS, ASSET_IMAGES } from './data/partsData';
+import { Sliders, Eye, PlaneTakeoff, ShieldCheck, ChevronDown, MapPin } from 'lucide-react';
 
 export default function App() {
   // Scroll progress for 3D experience (0 to 1)
@@ -170,15 +170,54 @@ export default function App() {
         className="relative w-full h-[340vh] bg-neutral-950"
       >
         {/* Sticky 3D Viewport Frame */}
-        <div className="sticky top-0 w-full h-screen overflow-hidden">
+        <div className="sticky top-0 w-full h-screen overflow-hidden bg-neutral-950">
+          {/* Real Photographic Background Layers (Synced to Flight Phases) */}
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+            {/* 1. Real Sky Clouds Background (High Altitude Cruise) */}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
+              style={{
+                backgroundImage: `url(${ASSET_IMAGES.skyClouds})`,
+                opacity: Math.max(0, 1 - scrollProgress * 2.2),
+              }}
+            />
+
+            {/* 2. Real Airport Runway Approach Background (Descent Leading to Airport) */}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
+              style={{
+                backgroundImage: `url(${ASSET_IMAGES.airportApproach})`,
+                opacity:
+                  scrollProgress >= 0.25 && scrollProgress <= 0.72
+                    ? Math.min(1, Math.max(0, (scrollProgress - 0.25) / 0.18)) *
+                      Math.min(1, Math.max(0, (0.72 - scrollProgress) / 0.15))
+                    : 0,
+              }}
+            />
+
+            {/* 3. Real Airport Maintenance Hangar Background (Touchdown & Disassembly) */}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
+              style={{
+                backgroundImage: `url(${ASSET_IMAGES.hangarBay})`,
+                opacity: Math.min(1, Math.max(0, (scrollProgress - 0.6) / 0.2)),
+              }}
+            />
+
+            {/* Cinematic subtle vignette & atmospheric gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-transparent to-neutral-950/60" />
+          </div>
+
           {/* Three.js 3D WebGL Canvas */}
-          <AircraftScene
-            scrollProgress={scrollProgress}
-            selectedComponentId={selectedComponentId}
-            onSelectComponent={(id) => setSelectedComponentId(id)}
-            onUpdateScreenPositions={(pos) => setScreenPositions(pos)}
-            isOrbitMode={isOrbitMode}
-          />
+          <div className="relative z-10 w-full h-full">
+            <AircraftScene
+              scrollProgress={scrollProgress}
+              selectedComponentId={selectedComponentId}
+              onSelectComponent={(id) => setSelectedComponentId(id)}
+              onUpdateScreenPositions={(pos) => setScreenPositions(pos)}
+              isOrbitMode={isOrbitMode}
+            />
+          </div>
 
           {/* Cinematic Hero Overlay (Visible during initial flight phase) */}
           <HeroOverlay
@@ -199,33 +238,36 @@ export default function App() {
           />
 
           {/* Bottom Left Quick Flight Phase Scrubber */}
-          <div className="absolute bottom-6 left-6 z-20 hidden md:flex items-center gap-2 p-1.5 bg-neutral-950/80 backdrop-blur-md border border-neutral-800 rounded-lg text-xs font-mono-numbers">
-            <span className="text-neutral-500 text-[10px] uppercase px-1">Stage:</span>
+          <div className="absolute bottom-6 left-6 z-20 hidden md:flex items-center gap-2 p-1.5 bg-neutral-950/85 backdrop-blur-md border border-neutral-800 rounded-lg text-xs font-mono-numbers shadow-xl">
+            <span className="text-neutral-500 text-[10px] uppercase px-1.5 flex items-center gap-1">
+              <MapPin className="w-3 h-3 text-cyan-400" />
+              <span>Phase:</span>
+            </span>
             <button
               onClick={() => handleScrubPhase(0.0)}
               className={`px-2.5 py-1 rounded transition-colors ${
                 scrollProgress < 0.35 ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              01 Flight
+              01 High Sky
             </button>
             <span className="text-neutral-700">/</span>
             <button
-              onClick={() => handleScrubPhase(0.5)}
+              onClick={() => handleScrubPhase(0.52)}
               className={`px-2.5 py-1 rounded transition-colors ${
-                scrollProgress >= 0.35 && scrollProgress < 0.65 ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-neutral-400 hover:text-white'
+                scrollProgress >= 0.35 && scrollProgress < 0.68 ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              02 Descent
+              02 Airport Approach
             </button>
             <span className="text-neutral-700">/</span>
             <button
               onClick={() => handleScrubPhase(0.85)}
               className={`px-2.5 py-1 rounded transition-colors ${
-                scrollProgress >= 0.65 ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-neutral-400 hover:text-white'
+                scrollProgress >= 0.68 ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              03 Exploded View
+              03 Hangar Disassembly
             </button>
           </div>
         </div>
