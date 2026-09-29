@@ -1,0 +1,6 @@
+{
+  "name": "AeroCore Technologies · Precision Aircraft Components",
+  "description": "Premier aviation systems and certified aircraft parts e-commerce platform. Interactive 3D exploded engineering assemblies, avionics, landing gear, and genuine components.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
